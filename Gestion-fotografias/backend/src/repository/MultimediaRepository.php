@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace App\repository;
 
 use App\dtos\MultimediaDto;
+use App\models\Multimedia;
 use PDO;
 
 class MultimediaRepository
@@ -56,8 +57,9 @@ class MultimediaRepository
 
     /**
      * Retorna los datos de un archivo multimedia por su id (incluida su colección).
+     * Retorna la entidad Multimedia o null si no existe.
      */
-    public function findById(int $id): ?array
+    public function findById(int $id): ?Multimedia
     {
         $stmt = $this->pdo->prepare(
             'SELECT m.id_multimedia, m.coleccion_id, m.titulo, m.descripcion, m.ruta_original,
@@ -70,11 +72,14 @@ class MultimediaRepository
         );
         $stmt->execute(['id' => $id]);
 
-        return $stmt->fetch() ?: null;
+        $row = $stmt->fetch();
+
+        return $row ? Multimedia::fromArray($row) : null;
     }
 
     /**
      * Retorna todos los archivos multimedia aprobados de una colección (para una galería).
+     * Retorna un array de entidades Multimedia.
      */
     public function findByColeccionId(int $coleccionId, bool $soloAprobados = true): array
     {
@@ -87,7 +92,10 @@ class MultimediaRepository
         );
         $stmt->execute(['coleccion_id' => $coleccionId]);
 
-        return $stmt->fetchAll();
+        return array_map(
+            static fn (array $fila): Multimedia => Multimedia::fromArray($fila),
+            $stmt->fetchAll()
+        );
     }
 
     /**
@@ -147,6 +155,7 @@ class MultimediaRepository
 
     /**
      * Lista archivos subidos por invitados que están pendientes de moderación (HU12).
+     * Retorna un array de entidades Multimedia.
      */
     public function listarPendientes(int $coleccionId): array
     {
@@ -157,7 +166,11 @@ class MultimediaRepository
              ORDER BY id_multimedia ASC'
         );
         $stmt->execute(['coleccion_id' => $coleccionId]);
-        return $stmt->fetchAll();
+
+        return array_map(
+            static fn (array $fila): Multimedia => Multimedia::fromArray($fila),
+            $stmt->fetchAll()
+        );
     }
 
     /**

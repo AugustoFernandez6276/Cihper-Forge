@@ -85,35 +85,35 @@ class AuthService
         }
 
         // 2. Verificar contraseña contra el hash almacenado
-        if (!password_verify($dto->password, $user['password_hash'])) {
+        if (!password_verify($dto->password, $user->passwordHash)) {
             Response::error('Credenciales incorrectas.', 401);
         }
 
         // 2b. CF-09: bloquear el login hasta que el correo esté verificado (RF18 / HU8).
-        if (!(bool) $user['email_verificado']) {
+        if (!$user->emailVerificado) {
             Response::error('Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada o solicita un nuevo código.', 403);
         }
 
         // 3. Emitir un token JWT firmado para las peticiones autenticadas posteriores.
         $token = Jwt::encode(
-            ['sub' => (int) $user['id'], 'rol' => $user['rol'], 'email' => $user['email']],
+            ['sub' => $user->id, 'rol' => $user->rol, 'email' => $user->email],
             Config::jwtSecret(),
             Config::tokenHoras()
         );
 
         // 4. Comprobar si aceptó las políticas obligatorias (HU31).
-        $politicasAceptadas = $user['rol'] === 'fotografo'
-            ? $this->userRepository->politicasAceptadas((int) $user['id'])
+        $politicasAceptadas = $user->rol === 'fotografo'
+            ? $this->userRepository->politicasAceptadas($user->id)
             : true;
 
         // 5. Retornar datos del usuario (sin el hash) junto con el token de acceso.
         return [
-            'id'                  => $user['id'],
-            'nombre_completo'     => $user['nombre_completo'],
-            'email'               => $user['email'],
-            'telefono'            => $user['telefono'],
-            'rol'                 => $user['rol'],
-            'email_verificado'    => (bool) $user['email_verificado'],
+            'id'                  => $user->id,
+            'nombre_completo'     => $user->nombreCompleto,
+            'email'               => $user->email,
+            'telefono'            => $user->telefono,
+            'rol'                 => $user->rol,
+            'email_verificado'    => $user->emailVerificado,
             'politicas_aceptadas' => $politicasAceptadas,
             'token'               => $token,
         ];
@@ -161,7 +161,7 @@ class AuthService
             Response::error('No existe ningún usuario con ese correo.', 404);
         }
 
-        if ((bool) $user['email_verificado']) {
+        if ((bool) $user->emailVerificado) {
             Response::error('El correo electrónico ya se encuentra verificado.', 400);
         }
 
@@ -170,7 +170,7 @@ class AuthService
         $this->userRepository->guardarCodigoVerificacion($email, $codigo, $expiracion);
 
         // Reenviar el código por correo con mensaje personalizado (CF-02 / RF18 / HU21).
-        $enviado = Mailer::enviarVerificacion($email, (string) $user['nombre_completo'], $codigo, $expiracion);
+        $enviado = Mailer::enviarVerificacion($email, $user->nombreCompleto, $codigo, $expiracion);
         if (!$enviado) {
             error_log('[CF-02] No se pudo reenviar el correo de verificación a ' . $email . ': ' . Mailer::lastError());
         }

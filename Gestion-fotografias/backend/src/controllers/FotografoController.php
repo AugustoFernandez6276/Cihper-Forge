@@ -67,7 +67,7 @@ class FotografoController
             Response::error('El fotógrafo no existe.', 404);
         }
 
-        Response::success($fotografo, 'Perfil del fotógrafo.');
+        Response::success($fotografo->toArray(), 'Perfil del fotógrafo.');
     }
 
     /**

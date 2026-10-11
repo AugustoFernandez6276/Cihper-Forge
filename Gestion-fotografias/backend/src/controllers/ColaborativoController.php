@@ -14,6 +14,7 @@ use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
 use App\helpers\QrGenerator;
+use App\models\TokenQr;
 use App\repository\ColeccionRepository;
 use App\repository\MultimediaRepository;
 use App\repository\UserRepository;
@@ -59,7 +60,7 @@ class ColaborativoController
         }
 
         $usuario = AuthMiddleware::user();
-        if ($usuario === null || (int) $coleccion['fotografo_id'] !== (int) $usuario['id']) {
+        if ($usuario === null || $coleccion->fotografoId !== (int) $usuario['id']) {
             Response::error('Solo el fotógrafo dueño puede generar el código colaborativo.', 403);
         }
 
@@ -72,13 +73,13 @@ class ColaborativoController
         $expiracion = date('Y-m-d H:i:s', time() + (24 * 3600));
         $tokenData = $this->coleccionRepository->crearTokenColaborativo($coleccionId, $expiracion);
 
-        $urlAcceso = $this->armarUrlColaborativo($tokenData['token']);
+        $urlAcceso = $this->armarUrlColaborativo($tokenData->token);
         $urlImprimir = $this->armarUrlFront("/colecciones/{$coleccionId}/qr-colaborativo/imprimir");
 
         Response::success([
-            'token'        => $tokenData['token'],
+            'token'        => $tokenData->token,
             'coleccion_id' => $coleccionId,
-            'evento'       => $coleccion['titulo'],
+            'evento'       => $coleccion->titulo,
             'expiracion'   => $expiracion,
             'url_acceso'   => $urlAcceso,
             'url_imprimir' => $urlImprimir,
@@ -102,7 +103,7 @@ class ColaborativoController
         }
 
         $usuario = AuthMiddleware::user();
-        if ($usuario === null || (int) $coleccion['fotografo_id'] !== (int) $usuario['id']) {
+        if ($usuario === null || $coleccion->fotografoId !== (int) $usuario['id']) {
             Response::error('Solo el fotógrafo dueño puede generar el enlace de acceso.', 403);
         }
 
@@ -116,12 +117,12 @@ class ColaborativoController
         $existente = $this->coleccionRepository->buscarTokenAccesoVigente($coleccionId);
         $tokenData = $existente ?? $this->coleccionRepository->crearTokenAcceso($coleccionId);
 
-        $urlAcceso = $this->armarUrlInvitacion($tokenData['token']);
+        $urlAcceso = $this->armarUrlInvitacion($tokenData->token);
 
         Response::success([
-            'token'        => $tokenData['token'],
+            'token'        => $tokenData->token,
             'coleccion_id' => $coleccionId,
-            'titulo'       => $coleccion['titulo'],
+            'titulo'       => $coleccion->titulo,
             'tipo'         => 'acceso',
             'expiracion'   => null,
             'url_acceso'   => $urlAcceso,
@@ -146,7 +147,7 @@ class ColaborativoController
 
         // H-05: Exigir que el solicitante sea el fotógrafo dueño de la colección (HU7)
         $usuario = AuthMiddleware::user();
-        if ($usuario === null || (int) $coleccion['fotografo_id'] !== (int) $usuario['id']) {
+        if ($usuario === null || $coleccion->fotografoId !== (int) $usuario['id']) {
             Response::error('Solo el fotógrafo dueño de la colección puede imprimir el código QR colaborativo.', 403);
         }
 
@@ -160,7 +161,7 @@ class ColaborativoController
         if (!$tokenData) {
             // Si no hay vigente, generar uno nuevo automáticamente
             $expiracion = date('Y-m-d H:i:s', time() + (24 * 3600));
-            $tokenData = $this->coleccionRepository->crearTokenColaborativo($coleccionId, $expiracion);
+            $tokenData = $this->coleccionRepository->crearTokenColaborativo($coleccionId, $expiracion)->toArray();
         }
 
         $urlAcceso = $this->armarUrlColaborativo($tokenData['token']);
@@ -168,7 +169,7 @@ class ColaborativoController
 
         header('Content-Type: text/html; charset=utf-8');
         echo QrGenerator::renderPrintableHtml(
-            $coleccion['titulo'] ?? 'Evento Especial',
+            $coleccion->titulo ?? 'Evento Especial',
             $urlAcceso,
             $svg,
             $tokenData['expiracion']
@@ -206,8 +207,8 @@ class ColaborativoController
 
         Response::success([
             'token'        => $token,
-            'evento'       => $infoToken['coleccion_titulo'],
-            'expira_en'    => $infoToken['expiracion'],
+            'evento'       => $infoToken->coleccionTitulo,
+            'expira_en'    => $infoToken->expiracion,
             'mensaje'      => 'Puedes subir fotos y videos para este evento.',
         ], 'Acceso colaborativo verificado.');
     }
@@ -221,8 +222,8 @@ class ColaborativoController
     public function subir(string $token): void
     {
         $infoToken = $this->validarTokenActivo($token);
-        $coleccionId = (int) $infoToken['coleccion_id'];
-        $fotografoId = (int) $infoToken['fotografo_id'];
+        $coleccionId = $infoToken->coleccionId;
+        $fotografoId = $infoToken->fotografoId;
 
         if (!isset($_FILES['archivos'])) {
             Response::error('Debes enviar al menos un archivo en el campo "archivos".', 400);
@@ -300,15 +301,15 @@ class ColaborativoController
         ], $mensaje, 201);
     }
 
-    private function validarTokenActivo(string $token): array
+    private function validarTokenActivo(string $token): TokenQr
     {
         $infoToken = $this->coleccionRepository->buscarToken($token);
 
-        if ($infoToken === null || $infoToken['tipo'] !== 'colaborativo') {
+        if ($infoToken === null || $infoToken->tipo !== 'colaborativo') {
             Response::error('El código QR colaborativo no es válido.', 404);
         }
 
-        if ($infoToken['expiracion'] !== null && strtotime($infoToken['expiracion']) < time()) {
+        if ($infoToken->expiracion !== null && strtotime($infoToken->expiracion) < time()) {
             Response::error('Este código QR colaborativo ha caducado (duración máxima de 24 horas).', 410);
         }
 

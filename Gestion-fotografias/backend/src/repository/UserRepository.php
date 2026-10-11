@@ -8,6 +8,8 @@ declare(strict_types=1);
 namespace App\repository;
 
 use App\dtos\RegisterDto;
+use App\models\Fotografo;
+use App\models\User;
 use PDO;
 
 class UserRepository
@@ -21,9 +23,9 @@ class UserRepository
 
     /**
      * Busca un usuario por su email.
-     * Retorna un array asociativo con todos los campos o null si no existe.
+     * Retorna la entidad User o null si no existe.
      */
-    public function findByEmail(string $email): ?array
+    public function findByEmail(string $email): ?User
     {
         $stmt = $this->pdo->prepare(
             'SELECT id, nombre_completo, email, telefono, email_verificado, password_hash, rol
@@ -36,14 +38,14 @@ class UserRepository
         $user = $stmt->fetch();
 
         // fetch() retorna false si no encuentra filas
-        return $user ?: null;
+        return $user ? User::fromArray($user) : null;
     }
 
     /**
      * Busca un usuario por su ID.
-     * Retorna un array asociativo con los datos del usuario o null si no existe.
+     * Retorna la entidad User o null si no existe.
      */
-    public function findById(int $id): ?array
+    public function findById(int $id): ?User
     {
         $stmt = $this->pdo->prepare(
             'SELECT id, nombre_completo, email, telefono, email_verificado, rol
@@ -55,7 +57,7 @@ class UserRepository
 
         $user = $stmt->fetch();
 
-        return $user ?: null;
+        return $user ? User::fromArray($user) : null;
     }
 
     /**
@@ -223,8 +225,9 @@ class UserRepository
 
     /**
      * Perfil público detallado de un fotógrafo (HU18).
+     * Retorna la entidad Fotografo o null si no existe.
      */
-    public function obtenerPerfilFotografo(int $id): ?array
+    public function obtenerPerfilFotografo(int $id): ?Fotografo
     {
         $stmt = $this->pdo->prepare(
             'SELECT u.id, u.nombre_completo, u.email, u.telefono
@@ -235,6 +238,6 @@ class UserRepository
         );
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch();
-        return $row ?: null;
+        return $row ? Fotografo::fromArray($row) : null;
     }
 }

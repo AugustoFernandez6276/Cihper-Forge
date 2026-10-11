@@ -11,6 +11,7 @@ use App\Core\Database;
 use App\Core\Response;
 use App\dtos\CreateColeccionDto;
 use App\helpers\MediaProcessor;
+use App\models\Coleccion;
 use App\repository\ColeccionRepository;
 use App\repository\MultimediaRepository;
 use App\repository\UserRepository;
@@ -45,17 +46,17 @@ class ColeccionService
 
         // 2. CF-05: el usuario autenticado debe ser el fotógrafo dueño de la nueva colección.
         $autenticado = AuthMiddleware::user();
-        if ($autenticado === null || (int) $autenticado['id'] !== (int) $usuario['id']) {
+        if ($autenticado === null || (int) $autenticado['id'] !== $usuario->id) {
             Response::error('Solo puedes crear colecciones a tu propio nombre.', 403);
         }
 
         // 3. Verificar que el usuario tenga rol 'fotografo' (RF4 / HU2)
-        if ($usuario['rol'] !== 'fotografo') {
+        if ($usuario->rol !== 'fotografo') {
             Response::error('Solo los usuarios con rol fotógrafo pueden crear colecciones.', 403);
         }
 
         // H-07: Verificar que el fotógrafo haya aceptado políticas y Ley 18.331 (RF26 / HU31)
-        if (!$this->userRepository->politicasAceptadas((int) $usuario['id'])) {
+        if (!$this->userRepository->politicasAceptadas($usuario->id)) {
             Response::error('Debes aceptar los Términos, Condiciones y Ley 18.331 antes de crear colecciones.', 403);
         }
 
@@ -69,9 +70,15 @@ class ColeccionService
 
         // 6. Obtener los datos completos de la colección creada
         $coleccion = $this->coleccionRepository->findById($coleccionId);
-        $coleccion['hashtags'] = $this->coleccionRepository->obtenerHashtags($coleccionId);
 
-        return $coleccion;
+        if ($coleccion === null) {
+            Response::error('La colección creada no está disponible.', 500);
+        }
+
+        return array_merge(
+            $coleccion->toArray(),
+            ['hashtags' => $this->coleccionRepository->obtenerHashtags($coleccionId)]
+        );
     }
 
     /**
@@ -87,11 +94,16 @@ class ColeccionService
         }
 
         $colecciones = $this->coleccionRepository->listarMiasConPortada((int) $autenticado['id']);
-        foreach ($colecciones as &$col) {
-            $col['hashtags'] = $this->coleccionRepository->obtenerHashtags((int) $col['id']);
-        }
 
-        return $colecciones;
+        return array_map(
+            function (Coleccion $col): array {
+                return array_merge(
+                    $col->toArray(),
+                    ['hashtags' => $this->coleccionRepository->obtenerHashtags($col->id)]
+                );
+            },
+            $colecciones
+        );
     }
 
     /**
@@ -100,10 +112,16 @@ class ColeccionService
     public function listarPublicas(?string $hashtag = null): array
     {
         $colecciones = $this->coleccionRepository->listarPublicas($hashtag);
-        foreach ($colecciones as &$col) {
-            $col['hashtags'] = $this->coleccionRepository->obtenerHashtags((int) $col['id']);
-        }
-        return $colecciones;
+
+        return array_map(
+            function (Coleccion $col): array {
+                return array_merge(
+                    $col->toArray(),
+                    ['hashtags' => $this->coleccionRepository->obtenerHashtags($col->id)]
+                );
+            },
+            $colecciones
+        );
     }
 
     /**
@@ -118,14 +136,14 @@ class ColeccionService
         }
 
         // Si es privada, validar que el usuario tenga acceso (HU20 / RF6)
-        if ($coleccion['tipo_visibilidad'] === 'privada') {
+        if ($coleccion->tipoVisibilidad === 'privada') {
             $usuario = AuthMiddleware::user();
 
             if ($usuario === null) {
                 Response::error('Debes iniciar sesión para acceder a esta colección privada.', 401);
             }
 
-            $esDueno = (int) $coleccion['fotografo_id'] === (int) $usuario['id'];
+            $esDueno = $coleccion->fotografoId === (int) $usuario['id'];
             $tieneAcceso = $this->multimediaRepository->tieneAcceso((int) $usuario['id'], $id);
 
             if (!$esDueno && !$tieneAcceso) {
@@ -133,8 +151,10 @@ class ColeccionService
             }
         }
 
-        $coleccion['hashtags'] = $this->coleccionRepository->obtenerHashtags($id);
-        return $coleccion;
+        return array_merge(
+            $coleccion->toArray(),
+            ['hashtags' => $this->coleccionRepository->obtenerHashtags($id)]
+        );
     }
 
     /**
@@ -144,22 +164,22 @@ class ColeccionService
     {
         $infoToken = $this->coleccionRepository->buscarToken($token);
 
-        if ($infoToken === null || $infoToken['tipo'] !== 'acceso') {
+        if ($infoToken === null || $infoToken->tipo !== 'acceso') {
             Response::error('El enlace de invitación es inválido o no existe.', 404);
         }
 
         $usuario = AuthMiddleware::user();
         $estaAutenticado = $usuario !== null;
         $tieneAcceso = $estaAutenticado
-            ? ((int) $infoToken['fotografo_id'] === (int) $usuario['id'] ||
-               $this->multimediaRepository->tieneAcceso((int) $usuario['id'], (int) $infoToken['coleccion_id']))
+            ? ($infoToken->fotografoId === (int) $usuario['id'] ||
+               $this->multimediaRepository->tieneAcceso((int) $usuario['id'], $infoToken->coleccionId))
             : false;
 
         return [
             'token'            => $token,
-            'coleccion_id'     => $infoToken['coleccion_id'],
-            'coleccion_titulo' => $infoToken['coleccion_titulo'],
-            'tipo_visibilidad' => $infoToken['tipo_visibilidad'],
+            'coleccion_id'     => $infoToken->coleccionId,
+            'coleccion_titulo' => $infoToken->coleccionTitulo,
+            'tipo_visibilidad' => $infoToken->tipoVisibilidad,
             'autenticado'      => $estaAutenticado,
             'tiene_acceso'     => $tieneAcceso,
             'requiere_auth'    => !$estaAutenticado,
@@ -173,7 +193,7 @@ class ColeccionService
     {
         $infoToken = $this->coleccionRepository->buscarToken($token);
 
-        if ($infoToken === null || $infoToken['tipo'] !== 'acceso') {
+        if ($infoToken === null || $infoToken->tipo !== 'acceso') {
             Response::error('El enlace de invitación es inválido o no existe.', 404);
         }
 
@@ -182,16 +202,22 @@ class ColeccionService
             Response::error('Debes iniciar sesión para desbloquear el acceso a esta colección.', 401);
         }
 
-        $coleccionId = (int) $infoToken['coleccion_id'];
+        $coleccionId = $infoToken->coleccionId;
         $usuarioId   = (int) $usuario['id'];
 
         $this->coleccionRepository->otorgarAcceso($usuarioId, $coleccionId);
 
         $coleccion = $this->coleccionRepository->findById($coleccionId);
-        $coleccion['hashtags'] = $this->coleccionRepository->obtenerHashtags($coleccionId);
+
+        if ($coleccion === null) {
+            Response::error('La colección no existe.', 404);
+        }
 
         return [
-            'coleccion' => $coleccion,
+            'coleccion' => array_merge(
+                $coleccion->toArray(),
+                ['hashtags' => $this->coleccionRepository->obtenerHashtags($coleccionId)]
+            ),
             'acceso_concedido' => true,
         ];
     }
@@ -217,14 +243,16 @@ class ColeccionService
         }
 
         $usuario = AuthMiddleware::user();
-        if ($usuario === null || (int) $coleccion['fotografo_id'] !== (int) $usuario['id']) {
+        if ($usuario === null || $coleccion->fotografoId !== (int) $usuario['id']) {
             Response::error('Solo el fotógrafo dueño puede actualizar los hashtags.', 403);
         }
 
         $this->coleccionRepository->sincronizarHashtags($id, $hashtags);
 
-        $coleccion['hashtags'] = $this->coleccionRepository->obtenerHashtags($id);
-        return $coleccion;
+        return array_merge(
+            $coleccion->toArray(),
+            ['hashtags' => $this->coleccionRepository->obtenerHashtags($id)]
+        );
     }
 
     /**
@@ -240,25 +268,25 @@ class ColeccionService
         }
 
         $usuario = AuthMiddleware::user();
-        if ($usuario === null || (int) $coleccion['fotografo_id'] !== (int) $usuario['id']) {
+        if ($usuario === null || $coleccion->fotografoId !== (int) $usuario['id']) {
             Response::error('Solo el fotógrafo dueño puede modificar la colección.', 403);
         }
 
         $titulo = isset($campos['titulo']) && trim((string) $campos['titulo']) !== ''
             ? trim((string) $campos['titulo'])
-            : (string) $coleccion['titulo'];
+            : ($coleccion->titulo ?? '');
 
         $descripcion = array_key_exists('descripcion', $campos)
             ? trim((string) $campos['descripcion'])
-            : ($coleccion['descripcion'] ?? null);
+            : $coleccion->descripcion;
 
         $tipoVisibilidad = isset($campos['tipo_visibilidad']) && in_array($campos['tipo_visibilidad'], ['privada', 'publica'], true)
             ? (string) $campos['tipo_visibilidad']
-            : (string) $coleccion['tipo_visibilidad'];
+            : $coleccion->tipoVisibilidad;
 
         // H-08: Si la colección pasa de pública a privada, eliminar de favoritos
         // para mantener la coherencia de que los favoritos solo apuntan a colecciones públicas (RF21).
-        if ($coleccion['tipo_visibilidad'] === 'publica' && $tipoVisibilidad === 'privada') {
+        if ($coleccion->tipoVisibilidad === 'publica' && $tipoVisibilidad === 'privada') {
             $this->coleccionRepository->eliminarFavoritosPorColeccion($id);
         }
 
@@ -268,9 +296,16 @@ class ColeccionService
             $this->coleccionRepository->sincronizarHashtags($id, $hashtags);
         }
 
-        $coleccionActualizada   = $this->coleccionRepository->findById($id);
-        $coleccionActualizada['hashtags'] = $this->coleccionRepository->obtenerHashtags($id);
-        return $coleccionActualizada;
+        $coleccionActualizada = $this->coleccionRepository->findById($id);
+
+        if ($coleccionActualizada === null) {
+            Response::error('La colección no existe.', 404);
+        }
+
+        return array_merge(
+            $coleccionActualizada->toArray(),
+            ['hashtags' => $this->coleccionRepository->obtenerHashtags($id)]
+        );
     }
 
     /**
@@ -286,7 +321,7 @@ class ColeccionService
         }
 
         $usuario = AuthMiddleware::user();
-        if ($usuario === null || (int) $coleccion['fotografo_id'] !== (int) $usuario['id']) {
+        if ($usuario === null || $coleccion->fotografoId !== (int) $usuario['id']) {
             Response::error('Solo el fotógrafo dueño puede eliminar la colección.', 403);
         }
 

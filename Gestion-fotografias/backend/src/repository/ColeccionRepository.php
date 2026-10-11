@@ -7,6 +7,9 @@ declare(strict_types=1);
 namespace App\repository;
 
 use App\dtos\CreateColeccionDto;
+use App\models\Coleccion;
+use App\models\Multimedia;
+use App\models\TokenQr;
 use PDO;
 
 class ColeccionRepository
@@ -41,8 +44,9 @@ class ColeccionRepository
 
     /**
      * Obtiene los datos de una colección por su ID.
+     * Retorna la entidad Coleccion o null si no existe.
      */
-    public function findById(int $id): ?array
+    public function findById(int $id): ?Coleccion
     {
         $stmt = $this->pdo->prepare(
             'SELECT c.id, c.fotografo_id, c.titulo, c.tipo_visibilidad, c.descripcion, c.creado_en,
@@ -56,7 +60,7 @@ class ColeccionRepository
 
         $coleccion = $stmt->fetch();
 
-        return $coleccion ?: null;
+        return $coleccion ? Coleccion::fromArray($coleccion) : null;
     }
 
     /**
@@ -96,7 +100,11 @@ class ColeccionRepository
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+
+        return array_map(
+            static fn (array $fila): Coleccion => Coleccion::fromArray($fila),
+            $stmt->fetchAll()
+        );
     }
 
     /**
@@ -112,7 +120,11 @@ class ColeccionRepository
              ORDER BY c.id DESC'
         );
         $stmt->execute(['fotografo_id' => $fotografoId]);
-        return $stmt->fetchAll();
+
+        return array_map(
+            static fn (array $fila): Coleccion => Coleccion::fromArray($fila),
+            $stmt->fetchAll()
+        );
     }
 
     /**
@@ -142,7 +154,11 @@ class ColeccionRepository
              ORDER BY c.id DESC'
         );
         $stmt->execute(['fotografo_id' => $fotografoId]);
-        return $stmt->fetchAll();
+
+        return array_map(
+            static fn (array $fila): Coleccion => Coleccion::fromArray($fila),
+            $stmt->fetchAll()
+        );
     }
 
     /**
@@ -226,8 +242,9 @@ class ColeccionRepository
 
     /**
      * Crea un token de QR colaborativo con expiración para un evento (HU4).
+     * Retorna la entidad TokenQr recién creada.
      */
-    public function crearTokenColaborativo(int $coleccionId, string $expiracion): array
+    public function crearTokenColaborativo(int $coleccionId, string $expiracion): TokenQr
     {
         $token = bin2hex(random_bytes(20));
         $stmt = $this->pdo->prepare(
@@ -240,19 +257,20 @@ class ColeccionRepository
             'expiracion'   => $expiracion,
         ]);
 
-        return [
-            'id_token'     => (int) $this->pdo->lastInsertId(),
-            'token'        => $token,
-            'coleccion_id' => $coleccionId,
-            'tipo'         => 'colaborativo',
-            'expiracion'   => $expiracion,
-        ];
+        return new TokenQr(
+            idToken: (int) $this->pdo->lastInsertId(),
+            token: $token,
+            coleccionId: $coleccionId,
+            tipo: 'colaborativo',
+            expiracion: $expiracion,
+        );
     }
 
     /**
      * Crea un token de acceso permanente (sin expiración) para una colección privada (CF-01 / RF16).
+     * Retorna la entidad TokenQr recién creada.
      */
-    public function crearTokenAcceso(int $coleccionId): array
+    public function crearTokenAcceso(int $coleccionId): TokenQr
     {
         $token = bin2hex(random_bytes(20));
         $stmt = $this->pdo->prepare(
@@ -264,19 +282,20 @@ class ColeccionRepository
             'coleccion_id' => $coleccionId,
         ]);
 
-        return [
-            'id_token'     => (int) $this->pdo->lastInsertId(),
-            'token'        => $token,
-            'coleccion_id' => $coleccionId,
-            'tipo'         => 'acceso',
-            'expiracion'   => null,
-        ];
+        return new TokenQr(
+            idToken: (int) $this->pdo->lastInsertId(),
+            token: $token,
+            coleccionId: $coleccionId,
+            tipo: 'acceso',
+            expiracion: null,
+        );
     }
 
     /**
      * Devuelve el token de acceso permanente más reciente de una colección, si existe (CF-01 / RF16).
+     * Retorna la entidad TokenQr o null.
      */
-    public function buscarTokenAccesoVigente(int $coleccionId): ?array
+    public function buscarTokenAccesoVigente(int $coleccionId): ?TokenQr
     {
         $stmt = $this->pdo->prepare(
             'SELECT id_token, token, coleccion_id, tipo, expiracion
@@ -287,13 +306,14 @@ class ColeccionRepository
         );
         $stmt->execute(['id' => $coleccionId]);
         $row = $stmt->fetch();
-        return $row ?: null;
+        return $row ? TokenQr::fromArray($row) : null;
     }
 
     /**
      * Busca cualquier token en qr_tokens y obtiene los datos de su colección vinculada.
+     * Retorna la entidad TokenQr o null.
      */
-    public function buscarToken(string $token): ?array
+    public function buscarToken(string $token): ?TokenQr
     {
         $stmt = $this->pdo->prepare(
             'SELECT qt.id_token, qt.token, qt.coleccion_id, qt.tipo, qt.expiracion,
@@ -305,7 +325,7 @@ class ColeccionRepository
         );
         $stmt->execute(['token' => $token]);
         $row = $stmt->fetch();
-        return $row ?: null;
+        return $row ? TokenQr::fromArray($row) : null;
     }
 
     /**

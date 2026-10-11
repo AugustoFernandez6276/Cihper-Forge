@@ -42,7 +42,7 @@ class FavoritoController
         }
 
         // Solo se permite marcar como favorita una colección pública (RF21)
-        if ($coleccion['tipo_visibilidad'] !== 'publica') {
+        if ($coleccion->tipoVisibilidad !== 'publica') {
             Response::error('Solo se pueden agregar a favoritos colecciones públicas.', 403);
         }
 

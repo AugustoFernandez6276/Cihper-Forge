@@ -12,6 +12,7 @@ use App\Core\Database;
 use App\Core\Response;
 use App\dtos\MultimediaDto;
 use App\helpers\MediaProcessor;
+use App\models\Multimedia;
 use App\repository\ColeccionRepository;
 use App\repository\MultimediaRepository;
 use App\repository\UserRepository;
@@ -47,7 +48,7 @@ class MultimediaService
         // 2. Si no es invitado, verificar que el usuario autenticado sea el fotógrafo dueño.
         if (!$dto->esInvitado) {
             $usuario = $this->usuarioAutenticado();
-            if ((int) $coleccion['fotografo_id'] !== (int) $usuario['id']) {
+            if ($coleccion->fotografoId !== (int) $usuario['id']) {
                 Response::error('No tienes permiso para subir archivos a esta colección.', 403);
             }
             // H-07: Verificar que el fotógrafo haya aceptado políticas y Ley 18.331 (RF26 / HU31)
@@ -108,7 +109,7 @@ class MultimediaService
         }
 
         $usuario = $this->usuarioAutenticado();
-        if ((int) $coleccion['fotografo_id'] !== (int) $usuario['id']) {
+        if ($coleccion->fotografoId !== (int) $usuario['id']) {
             Response::error('No tienes permiso para subir archivos a esta colección.', 403);
         }
         // H-07: Verificar que el fotógrafo haya aceptado políticas y Ley 18.331 (RF26 / HU31)
@@ -200,10 +201,10 @@ class MultimediaService
 
         // 1. Control de acceso
         $coleccion = [
-            'id'               => $multimedia['coleccion_id'],
-            'fotografo_id'     => $multimedia['fotografo_id'],
-            'tipo_visibilidad' => $multimedia['tipo_visibilidad'],
-            'titulo'           => $multimedia['titulo'],
+            'id'               => $multimedia->coleccionId,
+            'fotografo_id'     => $multimedia->fotografoId,
+            'tipo_visibilidad' => $multimedia->tipoVisibilidad,
+            'titulo'           => $multimedia->titulo,
         ];
         $this->verificarAccesoALaColeccion($coleccion);
 
@@ -213,7 +214,7 @@ class MultimediaService
         }
 
         // H-01: El material no aprobado (colaborativo) no puede descargarse salvo por el fotógrafo dueño.
-        if (!(bool) $multimedia['aprobado']) {
+        if (!$multimedia->aprobado) {
             $usuarioActual = $this->usuarioOpcional();
             $esDueno = $usuarioActual !== null && (int) $coleccion['fotografo_id'] === (int) $usuarioActual['id'];
             if (!$esDueno) {
@@ -221,7 +222,7 @@ class MultimediaService
             }
         }
 
-        $rutaOriginalAbsoluta = MediaProcessor::aRutaAbsoluta($multimedia['ruta_original']);
+        $rutaOriginalAbsoluta = MediaProcessor::aRutaAbsoluta($multimedia->rutaOriginal);
         if (!file_exists($rutaOriginalAbsoluta)) {
             Response::error('El archivo original no está disponible en disco.', 404);
         }
@@ -236,10 +237,10 @@ class MultimediaService
         // Full HD 1920 px y audio AAC 128 kbps (CC-30). Si no se puede generar, se
         // entrega el original como fallback.
         // H-08: Se asocia al idMultimedia para caché determinista en uploads/standard/.
-        if ($multimedia['tipo'] === 'video') {
-            $rutaBuenaCalidad = MediaProcessor::generarBuenaCalidadVideo($rutaOriginalAbsoluta, (int) $multimedia['id_multimedia']);
+        if ($multimedia->tipo === 'video') {
+            $rutaBuenaCalidad = MediaProcessor::generarBuenaCalidadVideo($rutaOriginalAbsoluta, $multimedia->idMultimedia);
         } else {
-            $rutaBuenaCalidad = MediaProcessor::generarBuenaCalidadImagen($rutaOriginalAbsoluta, (int) $multimedia['id_multimedia']);
+            $rutaBuenaCalidad = MediaProcessor::generarBuenaCalidadImagen($rutaOriginalAbsoluta, $multimedia->idMultimedia);
         }
         $rutaBuenaAbsoluta = MediaProcessor::aRutaAbsoluta($rutaBuenaCalidad);
 
@@ -263,15 +264,15 @@ class MultimediaService
         }
 
         $coleccion = [
-            'id'               => $multimedia['coleccion_id'],
-            'fotografo_id'     => $multimedia['fotografo_id'],
-            'tipo_visibilidad' => $multimedia['tipo_visibilidad'],
-            'titulo'           => $multimedia['titulo'],
+            'id'               => $multimedia->coleccionId,
+            'fotografo_id'     => $multimedia->fotografoId,
+            'tipo_visibilidad' => $multimedia->tipoVisibilidad,
+            'titulo'           => $multimedia->titulo,
         ];
         $this->verificarAccesoALaColeccion($coleccion);
 
         // H-01: El poster de un video no aprobado solo puede ser consultado por el fotógrafo dueño.
-        if (!(bool) $multimedia['aprobado']) {
+        if (!$multimedia->aprobado) {
             $usuarioActual = $this->usuarioOpcional();
             $esDueno = $usuarioActual !== null && (int) $coleccion['fotografo_id'] === (int) $usuarioActual['id'];
             if (!$esDueno) {
@@ -279,13 +280,13 @@ class MultimediaService
             }
         }
 
-        if ($multimedia['tipo'] === 'imagen') {
-            return MediaProcessor::aRutaAbsoluta($multimedia['vista_previa']);
+        if ($multimedia->tipo === 'imagen') {
+            return MediaProcessor::aRutaAbsoluta($multimedia->vistaPrevia);
         }
 
-        $rutaPoster = $multimedia['poster'] ?? null;
+        $rutaPoster = $multimedia->poster ?? null;
         if ($rutaPoster === null || $rutaPoster === '' || !file_exists(MediaProcessor::aRutaAbsoluta($rutaPoster))) {
-            $rutaOriginalAbsoluta = MediaProcessor::aRutaAbsoluta($multimedia['ruta_original']);
+            $rutaOriginalAbsoluta = MediaProcessor::aRutaAbsoluta($multimedia->rutaOriginal);
             if (!file_exists($rutaOriginalAbsoluta)) {
                 Response::error('El archivo no está disponible.', 404);
             }
@@ -293,7 +294,7 @@ class MultimediaService
             if ($rutaPoster === '') {
                 Response::error('No se pudo generar el poster del video.', 500);
             }
-            $this->multimediaRepository->actualizarPoster((int) $multimedia['id_multimedia'], $rutaPoster);
+            $this->multimediaRepository->actualizarPoster($multimedia->idMultimedia, $rutaPoster);
         }
 
         return MediaProcessor::aRutaAbsoluta($rutaPoster);
@@ -310,14 +311,14 @@ class MultimediaService
         }
 
         $usuario = $this->usuarioAutenticado();
-        if ((int) $multimedia['fotografo_id'] !== (int) $usuario['id']) {
+        if ($multimedia->fotografoId !== (int) $usuario['id']) {
             Response::error('Solo el fotógrafo dueño puede eliminar este archivo.', 403);
         }
 
         // Eliminar archivos físicos en disco
-        MediaProcessor::eliminarArchivoFisico($multimedia['ruta_original']);
-        MediaProcessor::eliminarArchivoFisico($multimedia['vista_previa']);
-        MediaProcessor::eliminarArchivoFisico($multimedia['poster']);
+        MediaProcessor::eliminarArchivoFisico($multimedia->rutaOriginal);
+        MediaProcessor::eliminarArchivoFisico($multimedia->vistaPrevia);
+        MediaProcessor::eliminarArchivoFisico($multimedia->poster);
         MediaProcessor::eliminarStandard($idMultimedia);
 
         $this->multimediaRepository->delete($idMultimedia);
@@ -334,28 +335,30 @@ class MultimediaService
         }
 
         $usuario = $this->usuarioAutenticado();
-        if ((int) $multimedia['fotografo_id'] !== (int) $usuario['id']) {
+        if ($multimedia->fotografoId !== (int) $usuario['id']) {
             Response::error('Solo el fotógrafo dueño puede editar este archivo.', 403);
         }
 
-        $titulo = isset($data['titulo']) ? trim((string) $data['titulo']) : $multimedia['titulo'];
-        $descripcion = isset($data['descripcion']) ? trim((string) $data['descripcion']) : $multimedia['descripcion'];
+        $titulo = isset($data['titulo']) ? trim((string) $data['titulo']) : ($multimedia->titulo ?? '');
+        $descripcion = isset($data['descripcion']) ? trim((string) $data['descripcion']) : $multimedia->descripcion;
         $nuevaColeccionId = isset($data['coleccion_id']) ? (int) $data['coleccion_id'] : null;
 
         // Si se reasigna de colección, validar que la colección de destino pertenezca al fotógrafo
-        if ($nuevaColeccionId !== null && $nuevaColeccionId !== (int) $multimedia['coleccion_id']) {
+        if ($nuevaColeccionId !== null && $nuevaColeccionId !== $multimedia->coleccionId) {
             $nuevaCol = $this->coleccionRepository->findById($nuevaColeccionId);
             if ($nuevaCol === null) {
                 Response::error('La colección destino no existe.', 404);
             }
-            if ((int) $nuevaCol['fotografo_id'] !== (int) $usuario['id']) {
+            if ($nuevaCol->fotografoId !== (int) $usuario['id']) {
                 Response::error('No tienes permisos sobre la colección destino.', 403);
             }
         }
 
         $this->multimediaRepository->actualizarMetadatos($idMultimedia, $titulo, $descripcion, $nuevaColeccionId);
 
-        return $this->multimediaRepository->findById($idMultimedia);
+        $actualizado = $this->multimediaRepository->findById($idMultimedia);
+
+        return $actualizado?->toArray();
     }
 
     /**
@@ -369,11 +372,14 @@ class MultimediaService
         }
 
         $usuario = $this->usuarioAutenticado();
-        if ((int) $coleccion['fotografo_id'] !== (int) $usuario['id']) {
+        if ($coleccion->fotografoId !== (int) $usuario['id']) {
             Response::error('Solo el fotógrafo dueño puede moderar esta colección.', 403);
         }
 
-        return $this->multimediaRepository->listarPendientes($coleccionId);
+        return array_map(
+            static fn (Multimedia $item): array => $item->toArray(),
+            $this->multimediaRepository->listarPendientes($coleccionId)
+        );
     }
 
     /**
@@ -387,7 +393,7 @@ class MultimediaService
         }
 
         $usuario = $this->usuarioAutenticado();
-        if ((int) $coleccion['fotografo_id'] !== (int) $usuario['id']) {
+        if ($coleccion->fotografoId !== (int) $usuario['id']) {
             Response::error('Solo el fotógrafo dueño puede aprobar archivos.', 403);
         }
 
@@ -405,7 +411,7 @@ class MultimediaService
         }
 
         $usuario = $this->usuarioAutenticado();
-        if ((int) $coleccion['fotografo_id'] !== (int) $usuario['id']) {
+        if ($coleccion->fotografoId !== (int) $usuario['id']) {
             Response::error('Solo el fotógrafo dueño puede rechazar archivos.', 403);
         }
 
@@ -445,9 +451,12 @@ class MultimediaService
             Response::error('La colección especificada no existe.', 404);
         }
 
-        $this->verificarAccesoALaColeccion($coleccion);
+        $this->verificarAccesoALaColeccion($coleccion->toArray());
 
-        return $this->multimediaRepository->findByColeccionId($coleccionId, true);
+        return array_map(
+            static fn (Multimedia $item): array => $item->toArray(),
+            $this->multimediaRepository->findByColeccionId($coleccionId, true)
+        );
     }
 
     // ------------------------------------------------------------------
@@ -464,15 +473,15 @@ class MultimediaService
 
         // 1. Control de acceso a nivel de colección (visibilidad + autorización).
         $coleccion = [
-            'id'               => $multimedia['coleccion_id'],
-            'fotografo_id'     => $multimedia['fotografo_id'],
-            'tipo_visibilidad' => $multimedia['tipo_visibilidad'],
-            'titulo'           => $multimedia['titulo'],
+            'id'               => $multimedia->coleccionId,
+            'fotografo_id'     => $multimedia->fotografoId,
+            'tipo_visibilidad' => $multimedia->tipoVisibilidad,
+            'titulo'           => $multimedia->titulo,
         ];
         $this->verificarAccesoALaColeccion($coleccion);
 
         // H-01: El material no aprobado (colaborativo) no puede verse salvo por el fotógrafo dueño.
-        if (!(bool) $multimedia['aprobado']) {
+        if (!$multimedia->aprobado) {
             $usuarioActual = $this->usuarioOpcional();
             $esDueno = $usuarioActual !== null && (int) $coleccion['fotografo_id'] === (int) $usuarioActual['id'];
             if (!$esDueno) {
@@ -486,7 +495,7 @@ class MultimediaService
         }
 
         // 2. Elegir entre vista previa (con marca de agua) u original.
-        $rutaRelativa = $thoughWatermark ? $multimedia['vista_previa'] : $multimedia['ruta_original'];
+        $rutaRelativa = $thoughWatermark ? $multimedia->vistaPrevia : $multimedia->rutaOriginal;
         $rutaAbsoluta = MediaProcessor::aRutaAbsoluta($rutaRelativa);
 
         if (!file_exists($rutaAbsoluta)) {

@@ -12,11 +12,12 @@ use App\Core\Config;
 use App\Core\Database;
 use App\Core\Response;
 use App\helpers\Jwt;
+use App\models\User;
 use App\repository\UserRepository;
 
 class AuthMiddleware
 {
-    private static ?array $user = null;
+    private static ?User $user = null;
 
     /**
      * Valida el requisito de seguridad de la ruta actual.
@@ -136,10 +137,14 @@ class AuthMiddleware
     }
 
     /**
-     * Retorna los datos del usuario autenticado en la petición actual (o null si es pública).
+     * Retorna los datos del usuario autenticado en la petición actual
+     * (o null si es pública). Se expone como array asociativo para
+     * mantener la compatibilidad con controladores y servicios que
+     * acceden por clave ($usuario['id']); internamente se trabaja
+     * con la entidad User tipada.
      */
     public static function user(): ?array
     {
-        return self::$user;
+        return self::$user?->toArray();
     }
 }
