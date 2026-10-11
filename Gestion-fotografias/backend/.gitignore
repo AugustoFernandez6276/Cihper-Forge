@@ -1,0 +1,25 @@
+# Archivos de entorno local (nunca subirlos al repo)
+.env
+.jwt_secret
+
+
+# Dependencias y build
+/vendor/
+/*.phar
+
+# Backups generados (solo se suben manualmente si se quiere versionar)
+/backups/
+
+# Logs y temporales
+/*.log
+/tmp/
+
+# IDE / editor temporales
+/.idea/
+/.vscode/
+/*.swp
+*.swo
+*.synced
+
+# Windows
+/Ds_Store
