@@ -25,6 +25,12 @@ services:
       - SMTP_PORT=1025
       - MAIL_FROM=no-reply@cipherforge.local
       - MAIL_FROM_NAME=Cipher Forge
+      # Cookies de sesión (JWT + Cookies): el JWT viaja en cookie HttpOnly.
+      # El contenedor expone HTTP (puerto 80), así que Secure=false.
+      # En producción (HTTPS) usar COOKIE_SECURE=true.
+      - COOKIE_NAME=cipher_forge_token
+      - COOKIE_SECURE=false
+      - COOKIE_SAMESITE=Strict
       # Opcional (H02): endurecer los endpoints /sistema/* a CIDRs concretos.
       # Por defecto solo admite tráfico local/privado (ver SISTEMA_LOCAL.md).
       # - SISTEMA_ALLOWED_IPS=10.0.0.0/8,192.168.0.0/16

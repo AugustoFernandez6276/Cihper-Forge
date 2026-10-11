@@ -9,6 +9,7 @@ namespace App\controllers;
 
 use App\Core\Request;
 use App\Core\Response;
+use App\helpers\CookieAuth;
 use App\services\AuthService;
 use App\validators\AuthValidator;
 
@@ -61,6 +62,19 @@ class AuthController
 
         // 4. Responder con 200 OK
         Response::success($userData, 'Inicio de sesión exitoso.');
+    }
+
+    /**
+     * POST /auth/logout
+     * Cierra la sesión eliminando la cookie que almacena el JWT.
+     * El token es stateless (no hay sesión en servidor), así que basta
+     * con descartar la cookie: las peticiones posteriores serán anónimas.
+     */
+    public function logout(): void
+    {
+        CookieAuth::borrar();
+
+        Response::success(null, 'Sesión cerrada correctamente.');
     }
 
     /**

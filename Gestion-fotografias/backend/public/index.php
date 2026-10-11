@@ -50,8 +50,31 @@ spl_autoload_register(function (string $class): void {
 use App\Core\Response;
 use App\Core\Router;
 
-//Cabeceras CORS básicas (para permitir peticiones desde el frontend)
-header('Access-Control-Allow-Origin: *');
+//Cabeceras CORS (para permitir peticiones desde el frontend)
+//Las cookies de sesión (JWT) requieren Allow-Credentials y un origen
+//explícito: el comodín '*' es incompatible con credenciales. Si la
+//petición proviene del frontend configurado (FRONTEND_URL) se permite
+//ese origen con credenciales; si no, se mantiene '*' para clientes
+//que aún usan la cabecera Bearer.
+$origenSolicitado = $_SERVER['HTTP_ORIGIN'] ?? '';
+
+$origenFrontend = '';
+$frontendUrl = getenv('FRONTEND_URL');
+if (is_string($frontendUrl) && trim($frontendUrl) !== '') {
+    $partesUrl = parse_url(trim($frontendUrl));
+    if (isset($partesUrl['scheme'], $partesUrl['host'])) {
+        $puerto = isset($partesUrl['port']) ? ':' . $partesUrl['port'] : '';
+        $origenFrontend = $partesUrl['scheme'] . '://' . $partesUrl['host'] . $puerto;
+    }
+}
+
+if ($origenSolicitado !== '' && $origenSolicitado === $origenFrontend) {
+    header('Access-Control-Allow-Origin: ' . $origenSolicitado);
+    header('Access-Control-Allow-Credentials: true');
+    header('Vary: Origin');
+} else {
+    header('Access-Control-Allow-Origin: *');
+}
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 // Expone Content-Disposition para que el frontend use el nombre real del archivo en las descargas

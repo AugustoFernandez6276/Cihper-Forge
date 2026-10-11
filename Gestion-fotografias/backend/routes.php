@@ -22,6 +22,7 @@ $router->add('GET', '/api/ping', HomeController::class, 'ping');
 // -------------------------------------------------------------
 $router->add('POST', '/auth/register', AuthController::class, 'register'); //
 $router->add('POST', '/auth/login', AuthController::class, 'login'); //
+$router->add('POST', '/auth/logout', AuthController::class, 'logout'); //
 $router->add('POST', '/auth/verificar-email', AuthController::class, 'verificarEmail'); //
 $router->add('POST', '/auth/reenviar-codigo', AuthController::class, 'reenviarCodigo'); //
 

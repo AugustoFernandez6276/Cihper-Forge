@@ -10,8 +10,9 @@ export function obtenerUsuario() {
     }
 }
 
-export function guardarSesion(token, usuario) {
-    localStorage.setItem("fotografo-token", token);
+// El token ya no se almacena en localStorage: viaja en cookie HttpOnly
+// y el navegador lo envía automáticamente (invisible a JavaScript).
+export function guardarSesion(usuario) {
     delete usuario.token;
     guardarUsuario(usuario);
 }
@@ -27,5 +28,5 @@ export function limpiarSesion() {
 }
 
 export function haySesion() {
-    return Boolean(obtenerToken() && obtenerUsuario());
+    return Boolean(obtenerUsuario());
 }

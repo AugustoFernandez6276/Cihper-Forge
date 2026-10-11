@@ -12,6 +12,7 @@ use App\Core\Database;
 use App\Core\Response;
 use App\dtos\RegisterDto;
 use App\dtos\LoginDto;
+use App\helpers\CookieAuth;
 use App\helpers\Jwt;
 use App\helpers\Mailer;
 use App\repository\UserRepository;
@@ -101,12 +102,19 @@ class AuthService
             Config::tokenHoras()
         );
 
+        // 3b. Entregar el token al cliente mediante una cookie HttpOnly (JWT + Cookies).
+        //     El token NO se incluye en el cuerpo JSON: HttpOnly lo hace inaccesible
+        //     a JavaScript, de modo que un XSS no puede robarlo (a diferencia de
+        //     localStorage). El navegador la envía automáticamente en cada petición
+        //     y su duración coincide con la del token.
+        CookieAuth::crear($token);
+
         // 4. Comprobar si aceptó las políticas obligatorias (HU31).
         $politicasAceptadas = $user->rol === 'fotografo'
             ? $this->userRepository->politicasAceptadas($user->id)
             : true;
 
-        // 5. Retornar datos del usuario (sin el hash) junto con el token de acceso.
+        // 5. Retornar datos del usuario (sin el hash y sin el token: viaja solo en cookie).
         return [
             'id'                  => $user->id,
             'nombre_completo'     => $user->nombreCompleto,
@@ -115,7 +123,6 @@ class AuthService
             'rol'                 => $user->rol,
             'email_verificado'    => $user->emailVerificado,
             'politicas_aceptadas' => $politicasAceptadas,
-            'token'               => $token,
         ];
     }
 

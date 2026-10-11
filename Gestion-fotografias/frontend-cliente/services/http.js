@@ -35,6 +35,7 @@ export async function enviarJson(ruta, metodo, cuerpo) {
     const opciones = {
         method: metodo,
         headers: cabeceras(cuerpo !== undefined),
+        credentials: 'include',
     };
     if (cuerpo !== undefined) opciones.body = JSON.stringify(cuerpo);
     const respuesta = await fetch(API_URL + ruta, opciones);
@@ -46,6 +47,7 @@ export async function enviarMultipart(ruta, metodo, formulario, conAuth) {
         method: metodo,
         headers: {},
         body: formulario,
+        credentials: 'include',
     };
     if (conAuth) opciones.headers = cabeceras(false);
     const respuesta = await fetch(API_URL + ruta, opciones);
@@ -58,7 +60,7 @@ export function adjuntarArchivos(formulario, archivos) {
 
 // Devuelve el archivo y sus cabeceras. No crea imágenes ni enlaces HTML.
 export async function obtenerArchivo(ruta) {
-    const respuesta = await fetch(API_URL + ruta, { headers: cabeceras(false) });
+    const respuesta = await fetch(API_URL + ruta, { headers: cabeceras(false), credentials: 'include' });
     if (!respuesta.ok) await parsear(respuesta);
     const blob = await respuesta.blob();
     return {

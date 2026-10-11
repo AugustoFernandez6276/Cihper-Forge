@@ -25,7 +25,9 @@ async function ingresar(evento) {
             password: document.getElementById("contraseña").value,
         });
         if (usuario.rol !== "cliente") throw new Error("Ingresa con una cuenta de cliente.");
-        guardarSesion(usuario.token, usuario);
+        // El JWT ya no viene en la respuesta: viaja en cookie HttpOnly
+        // y el navegador la envía automáticamente en cada petición.
+        guardarSesion(usuario);
         abrirPanel();
     } catch (error) {
         mensaje.textContent = error.message;

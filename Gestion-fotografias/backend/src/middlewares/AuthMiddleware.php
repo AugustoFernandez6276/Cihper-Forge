@@ -11,6 +11,7 @@ namespace App\middlewares;
 use App\Core\Config;
 use App\Core\Database;
 use App\Core\Response;
+use App\helpers\CookieAuth;
 use App\helpers\Jwt;
 use App\models\User;
 use App\repository\UserRepository;
@@ -92,14 +93,38 @@ class AuthMiddleware
     }
 
     /**
-     * Autentica sólo si la petición trae un token Bearer; si no trae, continúa sin usuario.
+     * Obtiene el token JWT de la petición.
+     * Prioridad:
+     *  1. Cookie HttpOnly (JWT + Cookies — mecanismo principal).
+     *  2. Cabecera Authorization: Bearer (compatibilidad con clientes
+     *     anteriores que aún envían el token en el header durante la
+     *     migración; el frontend puede seguir usándolo si lo prefiere).
+     */
+    private static function obtenerToken(): string
+    {
+        $token = CookieAuth::leer();
+        if ($token !== '') {
+            return $token;
+        }
+
+        $auth = self::obtenerCabeceraAuth();
+        if ($auth !== '' && preg_match('/^Bearer\s+(.+)$/i', $auth, $matches)) {
+            return trim($matches[1]);
+        }
+
+        return '';
+    }
+
+    /**
+     * Autentica sólo si la petición trae un token (cookie o Bearer);
+     * si no trae, continúa sin usuario.
      * Los errores de firma/expiración siguen bloqueando (token corrupto no se ignora).
      */
     private static function authenticateIfPresent(): void
     {
-        $auth = self::obtenerCabeceraAuth();
+        $token = self::obtenerToken();
 
-        if ($auth === '' || !str_starts_with($auth, 'Bearer ')) {
+        if ($token === '') {
             return; // Usuario anónimo (colección pública).
         }
 
@@ -107,18 +132,18 @@ class AuthMiddleware
     }
 
     /**
-     * Lee la cabecera Authorization (Bearer), valida el token JWT y carga el usuario.
+     * Valida el token JWT (cookie HttpOnly o cabecera Bearer) y carga el usuario.
      * Si el token falta o es inválido, interrumpe con 401.
      */
     private static function authenticate(): void
     {
-        $auth = self::obtenerCabeceraAuth();
+        $token = self::obtenerToken();
 
-        if (!preg_match('/^Bearer\s+(.+)$/i', $auth, $matches)) {
+        if ($token === '') {
             Response::error('Debes iniciar sesión para acceder a este recurso.', 401);
         }
 
-        $payload = Jwt::decode(trim($matches[1]), Config::jwtSecret());
+        $payload = Jwt::decode($token, Config::jwtSecret());
 
         if ($payload === null || !isset($payload['sub'])) {
             Response::error('Sesión inválida o expirada. Inicia sesión nuevamente.', 401);
