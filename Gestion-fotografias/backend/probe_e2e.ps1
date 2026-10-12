@@ -8,33 +8,49 @@ $password = "Passw0rd!123"
 
 function Invoke-Json($method, $path, $body = $null, $cookie = $null) {
     $params = @{
-        Uri         = "$base$path"
-        Method      = $method
+        Uri             = "$base$path"
+        Method          = $method
         UseBasicParsing = $true
     }
-    $headers = @{}
-    if ($cookie) { $headers['Cookie'] = $cookie }
+    # PS 5.1 descarta silenciosamente la cabecera Cookie pasada via -Headers;
+    # hay que usar -WebSession (o -WebSession con Cookies.Add) para enviarla.
+    $session = $null
+    if ($cookie) {
+        $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+        $netCookie = New-Object System.Net.Cookie(
+            'cipher_forge_token',
+            ($cookie -replace '^cipher_forge_token=', ''),
+            '/',
+            'localhost'
+        )
+        $session.Cookies.Add($netCookie)
+        $params['WebSession'] = $session
+    }
     if ($body) {
         $params['ContentType'] = 'application/json'
         $params['Body'] = ($body | ConvertTo-Json -Depth 6)
     }
-    if ($headers.Count -gt 0) { $params['Headers'] = $headers }
     try {
         $r = Invoke-WebRequest @params
         $content = $r.Content
         # Captura la cookie de sesion (JWT + Cookies) devuelta por el login
         # para reenviarla en las siguientes peticiones (equivalente al
         # Bearer anterior; el token ya no viaja en el cuerpo JSON).
+        # Se usa el indexer (no GetValues) porque GetValues lanza excepcion
+        # en respuestas sin Set-Cookie (p. ej. el registro).
         $cookieSesion = $null
-        $setCookies = $r.Headers.GetValues('Set-Cookie')
+        $setCookies = $r.Headers['Set-Cookie']
         if ($setCookies) {
-            $primera = $setCookies | Select-Object -First 1
+            $primera = @($setCookies) | Select-Object -First 1
             if ($primera -match '^([^;]+)') { $cookieSesion = $Matches[1] }
         }
         if ($content) { return [pscustomobject]@{ Status = $r.StatusCode; Json = ($content | ConvertFrom-Json); Cookie = $cookieSesion } }
         return [pscustomobject]@{ Status = $r.StatusCode; Json = $null; Cookie = $cookieSesion }
     } catch {
         $resp = $_.Exception.Response
+        if (-not $resp) {
+            return [pscustomobject]@{ Status = 0; Json = $null; Error = $_.Exception.Message }
+        }
         $code = [int]$resp.StatusCode
         $stream = $resp.GetResponseStream()
         $reader = New-Object System.IO.StreamReader($stream)
@@ -103,3 +119,13 @@ if ($cuotaNo.Json) { Write-Output "  ok=$($cuotaNo.Json.ok) mensaje=$($cuotaNo.J
 Write-Output "== 10. GET /fotografos/1 perfil (publico, espera 200) =="
 $perf = Invoke-Json 'GET' '/fotografos/1' $null $null
 Write-Output "  status=$($perf.Status)"
+
+Write-Output "== 11. Logout fotografo (espera 200 + Set-Cookie deleted) =="
+$logout = Invoke-Json 'POST' '/auth/logout' $null $cookieFoto
+Write-Output "  status=$($logout.Status)"
+if ($logout.Json) { Write-Output "  ok=$($logout.Json.ok) mensaje=$($logout.Json.mensaje)" }
+# El JWT es stateless: el backend no invalida el token en el servidor, solo
+# borra la cookie en el navegador (Set-Cookie deleted + Max-Age=0). Verificamos
+# que el header de borrado venga presente en la respuesta del logout.
+$logoutBorrado = ($logout.Cookie -eq 'cipher_forge_token=deleted') -or ($logout.Cookie -match 'deleted')
+Write-Output "  set-cookie-borrada=$(if($logoutBorrado){'OK'}else{'NO'})"

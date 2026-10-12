@@ -52,10 +52,11 @@ use App\Core\Router;
 
 //Cabeceras CORS (para permitir peticiones desde el frontend)
 //Las cookies de sesión (JWT) requieren Allow-Credentials y un origen
-//explícito: el comodín '*' es incompatible con credenciales. Si la
-//petición proviene del frontend configurado (FRONTEND_URL) se permite
-//ese origen con credenciales; si no, se mantiene '*' para clientes
-//que aún usan la cabecera Bearer.
+//explícito: el comodín '*' es incompatible con credenciales. Se permite
+//con credenciales: (a) el origen configurado en FRONTEND_URL y (b) orígenes
+//locales de desarrollo (localhost / 127.0.0.1 / ::1, cualquier puerto), de
+//modo que el frontend servido por Live Server pueda autenticarse aunque su
+//puerto cambie. Cualquier otro origen sigue recibiendo '*' sin credenciales.
 $origenSolicitado = $_SERVER['HTTP_ORIGIN'] ?? '';
 
 $origenFrontend = '';
@@ -68,7 +69,10 @@ if (is_string($frontendUrl) && trim($frontendUrl) !== '') {
     }
 }
 
-if ($origenSolicitado !== '' && $origenSolicitado === $origenFrontend) {
+$hostSolicitado = $origenSolicitado !== '' ? (string) (parse_url($origenSolicitado, PHP_URL_HOST) ?? '') : '';
+$esOrigenLocal = in_array(strtolower($hostSolicitado), ['localhost', '127.0.0.1', '[::1]', '::1'], true);
+
+if ($origenSolicitado !== '' && ($origenSolicitado === $origenFrontend || $esOrigenLocal)) {
     header('Access-Control-Allow-Origin: ' . $origenSolicitado);
     header('Access-Control-Allow-Credentials: true');
     header('Vary: Origin');
