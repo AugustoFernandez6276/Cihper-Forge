@@ -194,7 +194,11 @@ async function subirArchivos() {
 
 async function eliminarSeleccionados() {
     if (ocupado || !seleccionados.length) return;
-    if (!confirm("¿Eliminar los archivos seleccionados?")) return;
+    const vaciaraColeccion = seleccionados.length === archivos.length;
+    const aviso = vaciaraColeccion
+        ? "¿Eliminar todos los archivos? La colección quedará vacía y será eliminada."
+        : "¿Eliminar los archivos seleccionados?";
+    if (!confirm(aviso)) return;
     indicarTrabajo(true);
     const errores = [];
     for (const id of seleccionados) {
@@ -213,6 +217,18 @@ async function eliminarSeleccionados() {
         indicarTrabajo(false);
     }
     if (errores.length) alert(errores.join("\n"));
+    // Si la colección quedó sin archivos, se elimina por completo: igual que
+    // para los clientes, una colección vacía no debe quedar en el panel.
+    if (archivos.length === 0) {
+        coleccionVacia = false;
+        try {
+            await eliminarColeccion(coleccionId);
+        } catch (error) {
+            alert(error.message);
+            return;
+        }
+        location.href = "panel.html";
+    }
 }
 
 async function publicarColeccion(tipo) {
