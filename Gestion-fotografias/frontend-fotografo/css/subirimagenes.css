@@ -16,6 +16,46 @@
     font-size: 13px;
 }
 
+/* Título y descripción editables en línea: al pasar el cursor aparece un
+   pequeño badge gris claro que indica que el campo puede modificarse. */
+.CampoEditable {
+    position: relative;
+    border-radius: 4px;
+    cursor: text;
+    outline: none;
+}
+
+.CampoEditable::after {
+    content: "✎";
+    position: absolute;
+    top: -2px;
+    right: -16px;
+    padding: 0 4px;
+    border-radius: 4px;
+    background: #e5e7eb;
+    color: var(--gris-texto);
+    font-size: 10px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+.CampoEditable:hover::after,
+.CampoEditable:focus::after {
+    opacity: 1;
+}
+
+.CampoEditable:focus {
+    background: #f3f4f6;
+    box-shadow: 0 0 0 2px #e5e7eb;
+}
+
+.CampoEditable:empty::before {
+    content: attr(data-placeholder);
+    color: #9ca3af;
+    font-style: italic;
+}
+
 .BotonPublicar {
     display: inline-block;
     padding: 10px 20px;

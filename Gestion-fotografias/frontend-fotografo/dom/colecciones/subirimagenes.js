@@ -29,12 +29,20 @@ const botonEliminar = document.getElementById("eliminarSeleccionados");
 const botonSeleccionar = document.getElementById("seleccionarTodas");
 const visor = document.getElementById("visor");
 const contenidoVisor = document.getElementById("visorContenido");
+const campoTitulo = document.getElementById("nombreColeccion");
+const campoDescripcion = document.getElementById("descripcionColeccionTexto");
 const LIMITE_IMAGEN_BYTES = 30 * 1024 * 1024;
 const LIMITE_VIDEO_BYTES = 800 * 1024 * 1024;
+const MAX_TITULO = 60;
+const MAX_DESCRIPCION = 90;
 
 let archivos = [];
 let seleccionados = [];
 let ocupado = false;
+let tituloColeccion = "";
+let descripcionColeccion = "";
+let guardandoCampo = false;
+let guardadoPorEnter = false;
 // Borrado automático de la colección recién creada (nueva=1) que el fotógrafo
 // abandona sin subir nada. Solo se arma tras cargar bien la colección vacía;
 // cualquier acción real (subir, publicar, generar QR) lo desarma.
@@ -58,12 +66,99 @@ function indicarTrabajo(enCurso) {
     botonPublicar.disabled = enCurso;
     botonEliminar.disabled = enCurso;
     botonSeleccionar.disabled = enCurso;
+    campoTitulo.contentEditable = String(!enCurso);
+    campoDescripcion.contentEditable = String(!enCurso);
     for (const boton of menuVisibilidad.querySelectorAll("button")) boton.disabled = enCurso;
 }
 
 function mostrarVisibilidad(tipo) {
     document.getElementById("estadoVisibilidad").textContent =
         tipo === "publica" ? "Visible en colecciones públicas" : "Colección privada";
+}
+
+// Texto visible del campo editable, en una sola línea (Enter guarda, no salta).
+function leerTextoCampo(campo) {
+    return (campo.innerText || "").replace(/\s+/g, " ").trim();
+}
+
+function escribirTextoCampo(campo, texto) {
+    campo.textContent = texto;
+}
+
+async function guardarCampoEditable(campo, clave, texto, textoAnterior) {
+    const esTitulo = clave === "titulo";
+    const maximo = esTitulo ? MAX_TITULO : MAX_DESCRIPCION;
+    if (esTitulo && texto === "") {
+        escribirTextoCampo(campo, textoAnterior);
+        alert("El título no puede quedar vacío.");
+        return;
+    }
+    if (texto.length > maximo) {
+        escribirTextoCampo(campo, textoAnterior);
+        alert((esTitulo ? "El título" : "La descripción") + " no puede superar los " + maximo + " caracteres.");
+        return;
+    }
+    if (texto === textoAnterior) {
+        escribirTextoCampo(campo, textoAnterior);
+        return;
+    }
+    guardandoCampo = true;
+    indicarTrabajo(true);
+    try {
+        const datos = {};
+        datos[clave] = texto;
+        await actualizarColeccion(coleccionId, datos);
+        if (esTitulo) tituloColeccion = texto;
+        else descripcionColeccion = texto;
+        escribirTextoCampo(campo, texto);
+        coleccionVacia = false;
+        alert(esTitulo ? "El título se actualizó correctamente." : "La descripción se actualizó correctamente.");
+    } catch (error) {
+        escribirTextoCampo(campo, textoAnterior);
+        alert(error.message);
+    } finally {
+        indicarTrabajo(false);
+        guardandoCampo = false;
+    }
+}
+
+function configurarCampoEditable(campo, clave) {
+    let textoAnterior = "";
+    campo.addEventListener("focus", function () {
+        textoAnterior = clave === "titulo" ? tituloColeccion : descripcionColeccion;
+    });
+    campo.addEventListener("keydown", function (evento) {
+        if (evento.key === "Enter") {
+            // Guardar en lugar de salto de línea. El texto se lee ANTES del blur
+            // y el blur se salta (guardadoPorEnter) para no restaurar lo escrito.
+            evento.preventDefault();
+            const texto = leerTextoCampo(campo);
+            guardadoPorEnter = true;
+            campo.blur();
+            guardarCampoEditable(campo, clave, texto, textoAnterior);
+        } else if (evento.key === "Escape") {
+            evento.preventDefault();
+            escribirTextoCampo(campo, textoAnterior);
+            campo.blur();
+        }
+    });
+    // Solo texto plano: al pegar se descarta formato y saltos de línea.
+    campo.addEventListener("paste", function (evento) {
+        evento.preventDefault();
+        const texto = (evento.clipboardData || window.clipboardData)
+            .getData("text")
+            .replace(/\s+/g, " ");
+        document.execCommand("insertText", false, texto);
+    });
+    // Sin Enter no se guarda: se restaura el último valor.
+    campo.addEventListener("blur", function () {
+        if (guardadoPorEnter) {
+            guardadoPorEnter = false;
+            return;
+        }
+        if (guardandoCampo) return;
+        escribirTextoCampo(campo, clave === "titulo" ? tituloColeccion : descripcionColeccion);
+    });
 }
 
 function actualizarSeleccion() {
@@ -275,9 +370,10 @@ async function iniciar() {
     const esNueva = parametros.get("nueva") === "1";
     try {
         const coleccion = await detalleColeccion(coleccionId);
-        document.getElementById("nombreColeccion").textContent = coleccion.titulo;
-        document.getElementById("descripcionColeccionTexto").textContent =
-            coleccion.descripcion || "";
+        tituloColeccion = coleccion.titulo || "";
+        descripcionColeccion = coleccion.descripcion || "";
+        escribirTextoCampo(campoTitulo, tituloColeccion);
+        escribirTextoCampo(campoDescripcion, descripcionColeccion);
         mostrarVisibilidad(coleccion.tipo_visibilidad);
         configurarQr(coleccionId);
         await configurarTags(coleccion);
@@ -316,6 +412,8 @@ for (const boton of menuVisibilidad.querySelectorAll("button")) {
     });
 }
 document.getElementById("cerrarVisor").addEventListener("click", cerrarVisor);
+configurarCampoEditable(campoTitulo, "titulo");
+configurarCampoEditable(campoDescripcion, "descripcion");
 visor.addEventListener("click", function (evento) {
     if (evento.target === visor) cerrarVisor();
 });

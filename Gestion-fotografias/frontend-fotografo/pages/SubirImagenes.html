@@ -12,8 +12,24 @@
             <div class="Sidebar">
                 <a class="EnlaceVolver" href="panel.html">← Mis colecciones</a>
                 <div class="DatosNuevaColeccion">
-                    <h2 id="nombreColeccion">Nombre de la colección</h2>
-                    <p id="descripcionColeccionTexto"></p>
+                    <h2
+                        id="nombreColeccion"
+                        class="CampoEditable"
+                        contenteditable="true"
+                        role="textbox"
+                        aria-label="Título de la colección"
+                        data-placeholder="Sin título"
+                    >
+                        Nombre de la colección
+                    </h2>
+                    <p
+                        id="descripcionColeccionTexto"
+                        class="CampoEditable"
+                        contenteditable="true"
+                        role="textbox"
+                        aria-label="Descripción de la colección"
+                        data-placeholder="Sin descripción"
+                    ></p>
                     <p id="estadoVisibilidad"></p>
                 </div>
 
