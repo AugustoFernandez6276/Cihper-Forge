@@ -157,7 +157,7 @@ Las siguientes decisiones fueron tomadas por el equipo de desarrollo a partir de
 
 ## 7. Nombre propuesto del producto
 
-**[Nombre de la página web]**
+**Cipher Photo**
 
 Sistema web para fotógrafos y compradores que permite subir material fotográfico para ser comprado.
 
@@ -165,7 +165,7 @@ Sistema web para fotógrafos y compradores que permite subir material fotográfi
 
 ## 8. Visión del producto
 
-Para fotógrafos y videógrafos que tienen dificultad para entregar su material de forma inmediata, profesional y sin perder calidad, [Nombre de la página web] es una plataforma web que permitirá a fotógrafos subir, organizar y comercializar su material fotográfico, protegido con marca de agua, y a sus compradores visualizar, comprar y descargar ese contenido en dos niveles de calidad (buena calidad y alta calidad). A diferencia de WhatsApp o plataformas como Pixieset y Lumepic, nuestro producto combina protección del contenido, alta calidad de imagen y cobro ágil, sin demoras causadas por intermediarios que retienen el dinero. (El cobro ágil queda pospuesto a una versión posterior por restricción institucional UTU —equipo menor de edad sin posibilidad de procesar pagos reales—, ver Decisiones técnicas del equipo).
+Para fotógrafos y videógrafos que tienen dificultad para entregar su material de forma inmediata, profesional y sin perder calidad, Cipher Photo es una plataforma web que permitirá a fotógrafos subir, organizar y comercializar su material fotográfico, protegido con marca de agua, y a sus compradores visualizar, comprar y descargar ese contenido en dos niveles de calidad (buena calidad y alta calidad). A diferencia de WhatsApp o plataformas como Pixieset y Lumepic, nuestro producto combina protección del contenido, alta calidad de imagen y cobro ágil, sin demoras causadas por intermediarios que retienen el dinero. (El cobro ágil queda pospuesto a una versión posterior por restricción institucional UTU —equipo menor de edad sin posibilidad de procesar pagos reales—, ver Decisiones técnicas del equipo).
 
 La primera versión será de subida y bajada de imágenes y videos, y marca de agua.
 
@@ -332,7 +332,7 @@ El equipo presenta la siguiente propuesta:
 
 | Elemento | Propuesta |
 | --- | --- |
-| Producto | [Nombre de la página web], sistema web para fotógrafos y compradores. |
+| Producto | Cipher Photo, sistema web para fotógrafos y compradores. |
 | Duración | 15 semanas (91 puntos de historia totales). |
 | Metodología | Scrum, con 5 sprints de 3 semanas (velocidad promedio: ~18-20 pts/sprint). |
 | Entregas | Incremento funcional al final de cada sprint. |

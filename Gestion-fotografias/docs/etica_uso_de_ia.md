@@ -17,6 +17,7 @@
 | Gemini |  [Requerimientos](01-requerimientos.md)  | Corrección de errores: Se utilizaron para corregir errores de tipeo y gramática.  | Iván Sandoval  |
 | Claude, Kimi, Deepseek, Grok | [Backend](backend)  | Optimización: Se utilizaron para optimizar el código, mejorar su rendimiento y evitar errores de producción.  | Iván Sandoval  |
 | Claude, Kimi, Deepseek, Grok, Gemini | [Backend](backend)  | Aprendizaje continuo: Se utilizaron para aprender nuevas tecnologías y métodos de desarrollo.  | Iván Sandoval  |
+| OpenCode + modelos gratis | [Backend](backend)  | Generación de código faltante en el backend, se corrigió y vigiló constantemente el código generado para evitar futuros errores.  | Iván Sandoval  |
 | Claude, Gemini | [Seguridad](04-seguridad.md)  | Validación: Se validó la documentación mediante uso de AI para mayor rendimiento y velocidad, estas mismas validaciones fueron corroboradas para evitar errores en la misma documentación.  | Augusto Fernández  |
 | Claude, Gemini | [Seguridad](04-seguridad.md)  | Mapa de riesgo: El mapa de riesgo pedido en la primera entrega fue hecho en Mermaid para no tener que crear una imagen aparte en el Markdown y así agilizar la documentación. | Augusto Fernández  |
 | Kimi, Deepseek | [Frontend](frontend-fotografo)  | Orden: Se utilizó para ordenar las carpetas de ambos frontends y saber qué hacer en cada una.  | Augusto Fernández  |

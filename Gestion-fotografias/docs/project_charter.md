@@ -1,6 +1,6 @@
 ## Project Charter (Acta de Constitución del Proyecto)
 
-**Nombre del proyecto:** [Nombre de la página web] — Plataforma web para fotógrafos y compradores de material fotográfico
+**Nombre del proyecto:** Cipher Photo — Plataforma web para fotógrafos y compradores de material fotográfico
 
 **Cliente / patrocinador (sponsor):** Lemuel Swec
 
@@ -29,7 +29,7 @@ Desarrollar una plataforma web que permita a fotógrafos subir, organizar y prot
 Los fotógrafos uruguayos carecen de una herramienta que combine tres necesidades simultáneas: entrega profesional sin pérdida de calidad, protección efectiva del contenido (marca de agua, restricción de descarga) y vínculo comercial directo comprador-vendedor sin intermediarios que retengan comisiones. WhatsApp degrada la calidad y elimina el control; Pixieset/Lumepic cobran comisión y demoran la liquidación.
 
 **Visión del producto:**
-Para fotógrafos y videógrafos que tienen dificultad para entregar su material de forma inmediata, profesional y sin perder calidad, [Nombre de la página web] es una plataforma web que permitirá a fotógrafos subir, organizar y comercializar su material fotográfico, protegido con marca de agua, y a sus compradores visualizar, comprar y descargar ese contenido en dos niveles de calidad (buena calidad y alta calidad). A diferencia de WhatsApp o plataformas como Pixieset y Lumepic, nuestro producto combina protección del contenido, alta calidad de imagen y cobro ágil, sin demoras causadas por intermediarios que retienen el dinero. (El cobro ágil queda pospuesto a una versión posterior por restricción institucional UTU —equipo menor de edad sin posibilidad de procesar pagos reales—, ver Decisiones técnicas del equipo).
+Para fotógrafos y videógrafos que tienen dificultad para entregar su material de forma inmediata, profesional y sin perder calidad, Cipher Photo es una plataforma web que permitirá a fotógrafos subir, organizar y comercializar su material fotográfico, protegido con marca de agua, y a sus compradores visualizar, comprar y descargar ese contenido en dos niveles de calidad (buena calidad y alta calidad). A diferencia de WhatsApp o plataformas como Pixieset y Lumepic, nuestro producto combina protección del contenido, alta calidad de imagen y cobro ágil, sin demoras causadas por intermediarios que retienen el dinero. (El cobro ágil queda pospuesto a una versión posterior por restricción institucional UTU —equipo menor de edad sin posibilidad de procesar pagos reales—, ver Decisiones técnicas del equipo).
 
 La primera versión será de subida y bajada de imágenes y videos, y marca de agua.
 
