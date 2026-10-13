@@ -19,7 +19,6 @@ const cajaTags = document.getElementById("buscadorTags");
 const zonaBuscadorTags = document.getElementById("zonaBuscadorTags");
 let colecciones = [];
 let tagsSeleccionados = [];
-let numeroBusqueda = 0;
 
 function normalizarTag(tag) {
     return tag.trim().toLowerCase().replace(/^#/, "");
@@ -43,7 +42,6 @@ function cerrarCajaTags() {
 }
 
 async function mostrarColecciones() {
-    const busquedaActual = ++numeroBusqueda;
     liberarVistas(galeria);
     galeria.replaceChildren();
     const conArchivos = colecciones.filter(function (coleccion) {
@@ -53,9 +51,11 @@ async function mostrarColecciones() {
         return puntuacionTags(b) - puntuacionTags(a);
     });
     estadoVacio.hidden = ordenadas.length > 0;
+    // Insertar todas las tarjetas de golpe: con columnas CSS, añadirlas una a
+    // una (esperando cada portada) reequilibraba el mosaico y las tarjetas ya
+    // colocadas cambiaban de sitio. Las portadas se cargan en paralelo al final.
+    const cargasPortada = [];
     for (const coleccion of ordenadas) {
-        // Si el filtro cambió durante una descarga, deja de dibujar el resultado anterior.
-        if (busquedaActual !== numeroBusqueda) return;
         const tarjeta = crearTarjetaColeccion(coleccion);
         tarjeta.appendChild(crearBotonFavorito(coleccion.id));
         const etiquetas = document.createElement("div");
@@ -72,8 +72,11 @@ async function mostrarColecciones() {
         }
         tarjeta.appendChild(etiquetas);
         galeria.appendChild(tarjeta);
-        await cargarPortada(tarjeta.querySelector(".CubiertaTarjeta"), coleccion);
+        cargasPortada.push(
+            cargarPortada(tarjeta.querySelector(".CubiertaTarjeta"), coleccion),
+        );
     }
+    await Promise.all(cargasPortada);
 }
 
 function mostrarTags() {
