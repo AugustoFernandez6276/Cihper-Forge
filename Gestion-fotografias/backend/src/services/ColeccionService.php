@@ -153,7 +153,10 @@ class ColeccionService
 
         return array_merge(
             $coleccion->toArray(),
-            ['hashtags' => $this->coleccionRepository->obtenerHashtags($id)]
+            [
+                'hashtags'      => $this->coleccionRepository->obtenerHashtags($id),
+                'total_archivos' => $this->coleccionRepository->contarArchivos($id),
+            ]
         );
     }
 

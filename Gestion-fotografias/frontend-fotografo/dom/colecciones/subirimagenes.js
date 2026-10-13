@@ -1,12 +1,14 @@
 import {
     detalleColeccion,
     actualizarColeccion,
+    eliminarColeccion,
 } from "../../services/colecciones/coleccionesService.js";
 import {
     listarMultimedia,
     subirMultimedia,
     eliminarMultimedia,
 } from "../../services/multimedia/multimediaService.js";
+import { enviarBorradoKeepalive } from "../../services/http.js";
 import { requiereSesion } from "../comun/sesion.js";
 import { cargarVista, liberarVistas } from "../multimedia/multimedia.js";
 import { actualizarAlmacenamiento, formatearAlmacenamiento } from "../comun/almacenamiento.js";
@@ -33,6 +35,21 @@ const LIMITE_VIDEO_BYTES = 800 * 1024 * 1024;
 let archivos = [];
 let seleccionados = [];
 let ocupado = false;
+// Borrado automático de la colección recién creada (nueva=1) que el fotógrafo
+// abandona sin subir nada. Solo se arma tras cargar bien la colección vacía;
+// cualquier acción real (subir, publicar, generar QR) lo desarma.
+let coleccionVacia = false;
+let subioArchivos = false;
+
+function eliminarColeccionVacia(evento) {
+    // persisted = la página queda en caché y puede volver (botón "atrás"):
+    // en ese caso no se borra nada.
+    if (evento && evento.persisted) return;
+    if (!coleccionVacia || subioArchivos) return;
+    coleccionVacia = false;
+    // keepalive: la petición sobrevive al cierre/navegación de la pestaña.
+    enviarBorradoKeepalive("/colecciones/" + coleccionId, "DELETE");
+}
 
 function indicarTrabajo(enCurso) {
     ocupado = enCurso;
@@ -153,6 +170,7 @@ async function subirArchivos() {
             const resultado = await subirMultimedia(coleccionId, [archivo], {
                 titulo: archivo.name.slice(0, 60),
             });
+            subioArchivos = true;
             if (resultado.excedentes && resultado.excedentes.length > 0) {
                 errores.push(archivo.name + ": no queda espacio disponible.");
             } else if (espacioDisponible !== Infinity) {
@@ -205,6 +223,8 @@ async function publicarColeccion(tipo) {
         mostrarVisibilidad(tipo);
         menuVisibilidad.hidden = true;
         botonPublicar.setAttribute("aria-expanded", "false");
+        // El fotógrafo actuó sobre la colección: ya no es un abandono.
+        coleccionVacia = false;
     } catch (error) {
         alert(error.message);
     } finally {
@@ -235,6 +255,8 @@ async function iniciar() {
         mensaje.textContent = "La colección no es válida. Vuelve al panel.";
         return;
     }
+    const parametros = new URLSearchParams(location.search);
+    const esNueva = parametros.get("nueva") === "1";
     try {
         const coleccion = await detalleColeccion(coleccionId);
         document.getElementById("nombreColeccion").textContent = coleccion.titulo;
@@ -245,6 +267,8 @@ async function iniciar() {
         await configurarTags(coleccion);
         await cargarArchivos();
         await actualizarAlmacenamiento();
+        // Colección recién creada y aún vacía: se lista para borrar si se abandona.
+        coleccionVacia = esNueva && archivos.length === 0;
         indicarTrabajo(false);
     } catch (error) {
         mensaje.hidden = false;
@@ -282,4 +306,30 @@ visor.addEventListener("click", function (evento) {
 document.addEventListener("keydown", function (evento) {
     if (evento.key === "Escape") cerrarVisor();
 });
+// Generar un QR implica planes para la colección: no es un abandono.
+for (const idQr of ["botonQrColaborativo", "botonQrAcceso"]) {
+    document.getElementById(idQr).addEventListener("click", function () {
+        coleccionVacia = false;
+    });
+}
+// Añadir un tag también es una acción deliberada sobre la colección.
+document.getElementById("tagInput").addEventListener("keydown", function (evento) {
+    if (evento.key === "Enter") coleccionVacia = false;
+});
+// Salir por el enlace del panel: se borra aquí (página aún viva) y luego se navega.
+document.querySelector(".EnlaceVolver").addEventListener("click", async function (evento) {
+    if (!coleccionVacia || subioArchivos) return;
+    evento.preventDefault();
+    // currentTarget se anula tras un await: se guarda el destino antes.
+    const destino = evento.currentTarget.href;
+    coleccionVacia = false;
+    try {
+        await eliminarColeccion(coleccionId);
+    } catch (error) {
+        // Si el borrado falla, la colección queda en el panel para gestionarla a mano.
+    }
+    location.href = destino;
+});
+// Cerrar pestaña o navegar fuera: keepalive para que el DELETE complete igual.
+window.addEventListener("pagehide", eliminarColeccionVacia);
 await iniciar();

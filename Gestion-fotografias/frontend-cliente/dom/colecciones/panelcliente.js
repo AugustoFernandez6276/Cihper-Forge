@@ -15,6 +15,8 @@ const mensajeCarga = document.getElementById("mensajeCarga");
 const mensajeError = document.getElementById("mensajeError");
 const campoTag = document.getElementById("tagBusqueda");
 const listaTags = document.getElementById("tagsBusqueda");
+const cajaTags = document.getElementById("buscadorTags");
+const zonaBuscadorTags = document.getElementById("zonaBuscadorTags");
 let colecciones = [];
 let tagsSeleccionados = [];
 let numeroBusqueda = 0;
@@ -23,18 +25,35 @@ function normalizarTag(tag) {
     return tag.trim().toLowerCase().replace(/^#/, "");
 }
 
+// Cuantos de los tags seleccionados tiene la colección. Sirve para ordenar
+// por relevancia; no se usa para ocultar resultados.
+function puntuacionTags(coleccion) {
+    const tags = (coleccion.hashtags || []).map(normalizarTag);
+    return tagsSeleccionados.filter(function (tag) {
+        return tags.includes(tag);
+    }).length;
+}
+
+function abrirCajaTags() {
+    cajaTags.hidden = false;
+}
+
+function cerrarCajaTags() {
+    cajaTags.hidden = true;
+}
+
 async function mostrarColecciones() {
     const busquedaActual = ++numeroBusqueda;
     liberarVistas(galeria);
     galeria.replaceChildren();
-    const filtradas = colecciones.filter(function (coleccion) {
-        const tags = (coleccion.hashtags || []).map(normalizarTag);
-        return tagsSeleccionados.every(function (tag) {
-            return tags.includes(tag);
-        });
+    const conArchivos = colecciones.filter(function (coleccion) {
+        return (Number(coleccion.total_archivos) || 0) > 0;
     });
-    estadoVacio.hidden = filtradas.length > 0;
-    for (const coleccion of filtradas) {
+    const ordenadas = conArchivos.slice().sort(function (a, b) {
+        return puntuacionTags(b) - puntuacionTags(a);
+    });
+    estadoVacio.hidden = ordenadas.length > 0;
+    for (const coleccion of ordenadas) {
         // Si el filtro cambió durante una descarga, deja de dibujar el resultado anterior.
         if (busquedaActual !== numeroBusqueda) return;
         const tarjeta = crearTarjetaColeccion(coleccion);
@@ -102,7 +121,10 @@ async function iniciar() {
         colecciones = await listarColeccionesPublicas();
         await cargarFavoritos();
         const tag = new URLSearchParams(location.search).get("hashtag");
-        if (tag) tagsSeleccionados.push(normalizarTag(tag));
+        if (tag) {
+            tagsSeleccionados.push(normalizarTag(tag));
+            abrirCajaTags();
+        }
         mostrarTags();
         await mostrarColecciones();
         await cargarSugerencias();
@@ -114,10 +136,18 @@ async function iniciar() {
     }
 }
 
+campoTag.addEventListener("focus", abrirCajaTags);
 campoTag.addEventListener("keydown", async function (evento) {
     if (evento.key === "Enter") {
         evento.preventDefault();
         await agregarTag(campoTag.value);
     }
+});
+zonaBuscadorTags.addEventListener("click", function (evento) {
+    evento.stopPropagation();
+});
+document.addEventListener("click", cerrarCajaTags);
+document.addEventListener("keydown", function (evento) {
+    if (evento.key === "Escape") cerrarCajaTags();
 });
 if (usuario) await iniciar();

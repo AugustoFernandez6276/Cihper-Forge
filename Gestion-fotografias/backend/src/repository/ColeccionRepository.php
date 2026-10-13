@@ -81,7 +81,11 @@ class ColeccionRepository
                        (SELECT COUNT(*) FROM multimedia m WHERE m.coleccion_id = c.id AND m.aprobado = 1) AS total_archivos
                 FROM colecciones c
                 INNER JOIN usuarios u ON u.id = c.fotografo_id
-                WHERE c.tipo_visibilidad = "publica"';
+                WHERE c.tipo_visibilidad = "publica"
+                AND EXISTS (
+                    SELECT 1 FROM multimedia m
+                    WHERE m.coleccion_id = c.id AND m.aprobado = 1
+                )';
 
         $params = [];
 
@@ -222,6 +226,19 @@ class ColeccionRepository
         );
         $stmt->execute(['coleccion_id' => $coleccionId]);
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    /**
+     * Cuenta los archivos multimedia aprobados de una colección.
+     * Se usa para detectar colecciones vacías desde el detalle.
+     */
+    public function contarArchivos(int $coleccionId): int
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT COUNT(*) FROM multimedia WHERE coleccion_id = :coleccion_id AND aprobado = 1'
+        );
+        $stmt->execute(['coleccion_id' => $coleccionId]);
+        return (int) $stmt->fetchColumn();
     }
 
     /**

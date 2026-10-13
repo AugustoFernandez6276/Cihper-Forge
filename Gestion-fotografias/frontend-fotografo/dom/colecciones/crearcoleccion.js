@@ -17,7 +17,7 @@ async function guardarColeccion(evento) {
             descripcion: document.getElementById("descripcionColeccion").value.trim(),
             tipo_visibilidad: "privada"
         });
-        location.href = "SubirImagenes.html?coleccionId=" + coleccion.id;
+        location.href = "SubirImagenes.html?coleccionId=" + coleccion.id + "&nueva=1";
     } catch (error) {
         mensaje.textContent = error.message;
     } finally {

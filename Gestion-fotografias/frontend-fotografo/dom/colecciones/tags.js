@@ -6,6 +6,7 @@ import {
 export async function configurarTags(coleccion) {
     const campo = document.getElementById("tagInput");
     const lista = document.getElementById("listaTags");
+    const zonaTags = document.getElementById("zonaTags");
     let tags = coleccion.hashtags || [];
     let guardando = false;
 
@@ -27,6 +28,14 @@ export async function configurarTags(coleccion) {
         }
     }
 
+    function abrirCajaTags() {
+        lista.hidden = false;
+    }
+
+    function cerrarCajaTags() {
+        lista.hidden = true;
+    }
+
     async function guardarTags(nuevos) {
         if (guardando) return;
         guardando = true;
@@ -36,6 +45,7 @@ export async function configurarTags(coleccion) {
             tags = resultado.hashtags || nuevos;
             campo.value = "";
             mostrarTags();
+            abrirCajaTags();
         } catch (error) {
             alert(error.message);
         } finally {
@@ -44,6 +54,7 @@ export async function configurarTags(coleccion) {
         }
     }
 
+    campo.addEventListener("focus", abrirCajaTags);
     campo.addEventListener("keydown", async function (evento) {
         if (evento.key !== "Enter") return;
         evento.preventDefault();
@@ -53,6 +64,13 @@ export async function configurarTags(coleccion) {
             nuevosTags.push(tag);
             await guardarTags(nuevosTags);
         }
+    });
+    zonaTags.addEventListener("click", function (evento) {
+        evento.stopPropagation();
+    });
+    document.addEventListener("click", cerrarCajaTags);
+    document.addEventListener("keydown", function (evento) {
+        if (evento.key === "Escape") cerrarCajaTags();
     });
     mostrarTags();
     try {

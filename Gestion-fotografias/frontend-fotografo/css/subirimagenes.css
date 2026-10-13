@@ -133,9 +133,24 @@
 }
 
 .TagsColeccion .ListaTags {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 20;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    min-width: 230px;
+    max-width: 340px;
+    background: var(--secondary-color, #fff);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    box-shadow: var(--sombra);
+    padding: 10px;
+}
+
+.TagsColeccion .ListaTags[hidden] {
+    display: none;
 }
 
 .ZonaCarga {
@@ -291,11 +306,6 @@
 .ZonaCarga .Formatos {
     display: block;
     margin-top: 10px;
-}
-.TagsColeccion .ListaTags {
-    position: static;
-    display: flex;
-    box-shadow: none;
 }
 .ModalQrContenido {
     max-height: 90vh;

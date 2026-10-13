@@ -42,6 +42,18 @@ export async function enviarJson(ruta, metodo, cuerpo) {
     return await parsear(respuesta);
 }
 
+// Petición "fire-and-forget" para usar al abandonar la página (pagehide).
+// keepalive permite que el navegador la complete aunque el documento ya no exista.
+// No parsea respuesta ni lanza excepciones: si falla, no hay nada que hacer.
+export function enviarBorradoKeepalive(ruta, metodo) {
+    fetch(API_URL + ruta, {
+        method: metodo || "DELETE",
+        headers: cabeceras(false),
+        credentials: 'include',
+        keepalive: true,
+    }).catch(function () {});
+}
+
 export async function enviarMultipart(ruta, metodo, formulario, conAuth) {
     const opciones = {
         method: metodo,
