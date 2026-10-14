@@ -37,7 +37,7 @@ Prueba off-line validando el símbolo generado contra un decodificador independi
 | # | Verificación | Resultado |
 | --- | --- | --- |
 | 1 | `php -l backend/src/helpers/QrGenerator.php` (sintaxis) | OK |
-| 2 | Dimensiones según versión: v1/v2 → 25×25, v3 → 29×29, v7 → 45×45 | OK |
+| 2 | Dimensiones según versión: v1 → 21×21, v2 → 25×25, v3 → 29×29, v7 → 45×45 | OK |
 | 3 | Tres patrones de búsqueda correctos en cada símbolo | OK |
 | 4 | Info de formato (BCH, nivel L, máscara) en ambas copias | OK |
 | 5 | Info de versión para v7 (`0x07C94`) | OK |
@@ -254,7 +254,7 @@ La descarga en dos calidades usa `MediaProcessor::generarBuenaCalidadImagen()`: 
 
 Cambios solo en `frontend-fotografo/js/subirimagenes.js`. No requiere migración de BD.
 
-### Vista previa y moderación de aportes colaborativos (CC-25)
+## Vista previa y moderación de aportes colaborativos (CC-25)
 
 El panel "Moderar aportes" (`frontend-fotografo/js/moderation.js`) cargaba las miniaturas con `<img src=.../vista-previa>` sin cabecera `Authorization`; como las colecciones colaborativas son privadas, el backend responde 401 y las imágenes quedaban ocultas (se podían seleccionar sin verlas). Corrección: `window.api.obtenerVistaPrevia(id)` en `frontend-fotografo/js/api.js` descarga con `fetch` + Bearer y devuelve un objectURL; `renderizarPendientes` la usa, revoca los objectURLs al re-renderizar y el clic en la miniatura abre la vista previa completa en nueva pestaña (CC-25).
 
@@ -269,7 +269,7 @@ Cambios solo en `frontend-fotografo/js/api.js` y `frontend-fotografo/js/moderati
 
 ---
 
-### Videos en moderación y cuota de almacenamiento (CC-26)
+## Videos en moderación y cuota de almacenamiento (CC-26)
 
 (1) La vista previa de un video es un clip MP4 de 15 s; `renderizarPendientes` ahora crea `<video>` (muted, preload auto) para los ítems cuyo `tipo` empieza con "video" en lugar de `<img>`. (2) El indicador de cuota usaba `Math.max(borrador local, servidor)` y el borrador local conservaba copias de todo lo subido/sincronizado, por lo que la cuota quedaba clavada en un valor alto: ahora la base es `espacio_servidor + borradores aún no subidos`, se refresca la cuota del servidor tras publicar/subir/borrar, y los borrados (archivos y colecciones) esperan el `DELETE` del backend y avisan si falla (conservando el elemento para reintentarlo). Verificación E2E del SUM del backend con un usuario de prueba: `GET /fotografos/cuota` = 5 429 B tras subir 1 JPG y **0 B** tras borrar la colección.
 
@@ -286,7 +286,7 @@ Cambios solo en `frontend-fotografo/js/almacenamiento.js`, `subirimagenes.js`, `
 
 ---
 
-### "Mis colecciones" desde el servidor (H09 / CC-33)
+## "Mis colecciones" desde el servidor (H09 / CC-33)
 
 El panel del fotógrafo cargaba "Mis colecciones" solo de `localStorage`, por lo que las colecciones publicadas desaparecían al cambiar de navegador/dispositivo. Se agregó `GET /colecciones/mias` (auth) que lista las colecciones del fotógrafo autenticado con portada y total de archivos aprobados, y `panel.js` sincroniza el panel con esa lista (fusiona con el borrador local: conserva borradores sin publicar, descarta solo las publicadas que ya no existen en el servidor y carga miniaturas autenticadas vía `obtenerVistaPrevia`).
 
@@ -307,7 +307,7 @@ Backend: `routes.php`, `ColeccionController`, `ColeccionService`, `ColeccionRepo
 
 ---
 
-### Portada de video con fotograma real (poster) (CC-35)
+## Portada de video con fotograma real (poster) (CC-35)
 
 Una colección que solo tiene videos usaba el clip MP4 de 15 s como portada, y `panel.js` lo cargaba en un `<img>` (imagen rota) o mostraba un marcador gris "Vídeo". Ahora cada video genera un **poster** (fotograma JPG) con FFmpeg: `MediaProcessor::generarPosterVideo` (segundo 1, o fotograma 0 si el video es más corto; escala máx. 1280 px; guardado en `uploads/standard/`). Se persiste en la columna nueva `multimedia.poster`. Nuevo endpoint autenticado `GET /multimedia/{id}/poster` (`MultimediaService::obtenerPoster`): para videos sirve el poster (generándolo bajo demanda una única vez si el video es anterior a CC-35); para imágenes sirve la vista previa con marca de agua. Mantiene el mismo control de acceso que la vista previa. El panel usa `obtenerPoster` para las portadas `portada_tipo = video` y conserva el marcador "Vídeo" solo como respaldo si FFmpeg no pudo generar el fotograma.
 

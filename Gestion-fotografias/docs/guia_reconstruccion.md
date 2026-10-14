@@ -98,7 +98,7 @@ curl http://localhost:8080/api/ping
 
 ## 3. Comprobación y Uso de los Portales Frontend
 
-Los archivos del frontend son aplicaciones web cliente servidas de forma estática o consumibles directamente:
+Los archivos del frontend son aplicaciones web de cliente servidas de forma estática o consumibles directamente:
 1. **Portal Fotógrafo:** Abre en el navegador el archivo `frontend-fotografo/index.html` (o `pages/login.html`). Permite el registro como rol Fotógrafo, login y administración de colecciones.
 2. **Portal Cliente:** Abre en el navegador el archivo `frontend-cliente/index.html`. Permite explorar colecciones públicas, ingresar a privadas mediante token y realizar descargas directas en Buena o Alta calidad.
 

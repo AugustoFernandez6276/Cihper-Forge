@@ -166,7 +166,7 @@ A diferencia del control de cambios (que es una bitácora técnica de decisiones
 | **Sprint:** | Sprint 4 (Semanas 10 a 12) |
 | **Fecha y Modalidad:** | 18/09/2026 — Modalidad Presencial / Laboratorio local |
 | **Participantes:** | Lemuel Swec (Cliente / Sponsor), Nicolás Negretto (Líder / SM), Iván Sandoval (Sublíder / Backend), Augusto Fernández (Frontend) |
-| **Objetivo del Sprint:** | Integrar FFmpeg en el contenedor Docker para generar recortes de 15 segundos en videos de forma automática, implementar el control de cuota de 3 GB con notificación de excedentes en subidas múltiples, validar límites técnicos de video (límite de 800 MB y clips de 80 MB) y habilitar la eliminación regular de imágenes y videos por el fotógrafo. |
+| **Objetivo del Sprint:** | Integrar FFmpeg en el contenedor Docker para generar recortes de 15 segundos en videos de forma automática, implementar el control de cuota de 3 GB con notificación de excedentes en subidas múltiples, validar límites técnicos de video (límite de 800 MB) y habilitar la eliminación regular de imágenes y videos por el fotógrafo. |
 | **Velocidad Comprometida:** | 16 puntos de historia |
 | **Velocidad Completada:** | 16 puntos de historia (Cumplimiento: 100%) |
 
@@ -213,7 +213,7 @@ A diferencia del control de cambios (que es una bitácora técnica de decisiones
 | **HU18** | Como fotógrafo, quiero editar mi información de perfil, para tener siempre mis datos actualizados. | 3 | **Aceptada** | Pantalla de perfil con nombre y teléfono, visible en el directorio público de fotógrafos (`GET /fotografos`). |
 | **HU23** | Como usuario, quiero marcar como favorita una colección pública completa, para tener una lista de favoritos privada. | 3 | **Aceptada** | Toggle interactivo de favoritos persistido en tabla `favoritos`, accesible desde la vista privada de usuario. |
 | **HU13** | Como fotógrafo, quiero que se realice un respaldo automático diario de la base de datos y se roten las últimas 3 copias, para mitigar el riesgo de pérdida de datos. | 5 | **Aceptada** | Volcado DDL y DML vía PDO (`SHOW CREATE TABLE` + `SELECT` con `quote()`), rotación FIFO eliminando el respaldo más antiguo cuando hay 3 o más, y registro en tabla `backups`. |
-| **HU15** | Como fotógrafo/cliente, quiero contar con una guía básica de uso y recibir una breve capacitación sobre la plataforma, para utilizarla de forma autónoma. | 1 | **INCOMPLETO** | Entrega de manual de usuario en PDF, capacitación presencial de 45 minutos y entrega de credenciales maestras. |
+| **HU15** | Como fotógrafo/cliente, quiero contar con una guía básica de uso y recibir una breve capacitación sobre la plataforma, para utilizarla de forma autónoma. | 1 | **INCOMPLETO** | Queda pendiente la entrega definitiva del manual de usuario y la capacitación al sponsor (ver [Acta de cierre](10-acta_de_cierre.md)). |
 
 ### Demostración del Incremento Funcional
 1. **Perfil Profesional:** Se editó el perfil de Lemuel Swec actualizando nombre y teléfono. Se comprobó que el perfil figura disponible en el directorio de fotógrafos.
@@ -231,4 +231,4 @@ A diferencia del control de cambios (que es una bitácora técnica de decisiones
 1. **Balance Final del Backlog:** Se completaron exitosamente los **91 puntos de historia** comprometidos a lo largo de los **5 sprints** de 3 semanas (15 semanas de desarrollo en total), con una velocidad promedio real de **18.2 puntos por sprint** y un cumplimiento del 100%.
 2. **Entrega de Artefactos:** Se hizo entrega formal del repositorio de código fuente, la configuración Docker (`docker-compose.yml`, `Dockerfile`), la base de datos relacional inicializada con su esquema en `database/schema.sql` y el paquete documental de requerimientos, arquitectura, seguridad y pruebas.
 3. **Firma de Conformidad:** El cliente Lemuel Swec dio por finalizado el proyecto de software conforme a los requerimientos aprobados.
->
+-->

@@ -169,7 +169,7 @@ Docker Compose orquesta **cuatro servicios** comunicados mediante una red intern
 * **Construcción:** Comparte la imagen `cipher-forge:dev` construida con el mismo `./Dockerfile` que `app`.
 * **Comando:** `php cron-backup.php --loop` — ejecuta como proceso residente el script de mantenimiento (CF-12): **respaldo diario** de la base de datos (HU13 / RNF5-RNF7) y **purga de archivos colaborativos no aprobados tras 24 horas** (HU12 / RF15). No expone puertos.
 * **Volúmenes:**
-  * `.:/var/www/html`: mismo bind mount de código que `app` (Lee el script y escribe los volcados en `backend/backups/`).
+  * `.:/var/www/html`: mismo bind mount de código que `app` (lee el script y escribe los volcados en `backend/backups/`).
   * `uploads_data:/var/www/html/uploads`: mismo volumen persistente (borra físicamente los archivos colaborativos purgados).
 * **Variables de Entorno:** las mismas credenciales de BD que `app` (`DB_*`) más los intervalos del bucle:
   * `BACKUP_INTERVAL_SEG=86400`: respaldo cada 24 h.

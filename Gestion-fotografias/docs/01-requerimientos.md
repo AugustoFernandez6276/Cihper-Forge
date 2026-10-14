@@ -205,7 +205,6 @@ Quedarán fuera de la primera versión:
 6. Subida de videos directa a S3/Cloudflare con URLs firmadas con colas asíncronas.
 7. Descarga masiva de archivos comprimidos (.zip) y selección múltiple de descargas (postergada para fases posteriores).
 8. Flujo de solicitudes y notificaciones de autorización para descargas entre cliente y fotógrafo (postergado junto con las pasarelas de pago reales).
-9. Descarga de archivos masivos comprimidos en formato .zip.
 
 
 ---
@@ -302,9 +301,9 @@ En este ejemplo:
 - 5 puntos representan una tarea compleja.
 - 8 puntos representan una tarea grande o riesgosa.
 
-Se asumirá una velocidad promedio del equipo de **20 puntos por sprint** (promedio real: 20.0 puntos).
+Se asumirá una velocidad promedio del equipo de **20 puntos por sprint** (promedio real: 20,0 puntos).
 Cada sprint tendrá una duración de **3 semanas**.
-El proyecto tendrá **5 sprints**, por lo tanto, la duración total estimada será de **15 semanas** para completar un backlog consolidado de **91 puntos de historia** (con un promedio estimado de ~18.2 puntos por sprint).
+El proyecto tendrá **5 sprints**, por lo tanto, la duración total estimada será de **15 semanas** para completar un backlog consolidado de **91 puntos de historia** (con un promedio estimado de ~18,2 puntos por sprint).
 
 ---
 

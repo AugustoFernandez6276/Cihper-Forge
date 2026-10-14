@@ -61,7 +61,6 @@ La primera versión será de subida y bajada de imágenes y videos, y marca de a
 6. Subida de videos directa a S3/Cloudflare con URLs firmadas con colas asíncronas.
 7. Descarga masiva de archivos comprimidos (.zip) y selección múltiple de descargas.
 8. Flujo de solicitudes y notificaciones de autorización para descargas entre cliente y fotógrafo.
-9. Descarga de archivos masivos comprimidos en formato .zip.
 
 ---
 
@@ -80,7 +79,7 @@ La primera versión será de subida y bajada de imágenes y videos, y marca de a
 | --- | --- |
 | Falta de experiencia del equipo en PHP, JavaScript y FFmpeg | Retraso en la implementación de módulos complejos (marca de agua, procesamiento de video, QR) |
 | Restricción institucional (UTU): equipo menor de edad | Imposibilidad de contratar hosting, dominio o pasarela de pago real; sistema limitado a entorno local |
-| Caída del servidor durante pruebas o evaluación | Pérdida de datos de prueba y tiempo de trabajo; mitigado con respaldos automáticos|
+| Caída del servidor durante pruebas o evaluación | Pérdida de datos de prueba y tiempo de trabajo; mitigado con respaldos automáticos |
 | Material de riesgo legal (fotos sin autorización) | Responsabilidad legal del fotógrafo; mitigado con política de privacidad obligatoria y Ley 18.331 |
 | Pérdida de respaldos o archivos multimedia | Pérdida irrecuperable de material del fotógrafo; mitigado con rotación de 3 copias en la base de datos |
 

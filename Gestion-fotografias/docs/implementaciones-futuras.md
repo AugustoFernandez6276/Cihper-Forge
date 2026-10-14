@@ -36,12 +36,14 @@ Estas son mejoras de UX y defensa en profundidad, no reemplazan la validación s
 
 ### Archivos relevantes
 
-- `frontend-cliente/js/tuscoleccionescliente.js` (flujo de invitaciones)
-- `frontend-cliente/js/gallery.js` (visualización de colecciones)
+- `frontend-cliente/dom/colecciones/tuscoleccionescliente.js` (flujo de invitaciones)
+- `frontend-cliente/services/invitaciones/invitacionesService.js` (validación y canje del token)
+- `frontend-cliente/dom/colecciones/coleccion.js` (visualización de colecciones)
+- `frontend-cliente/dom/multimedia/multimedia.js` (carga de contenido con sesión)
 
 ---
 
-## 2. Validación de formato de archivo por magic bytes en la capa moderna
+## 2. Validación de formato de archivo por magic bytes en el frontend
 
 **Fecha de identificación:** 2026-09-14
 **Requisitos relacionados:** RF7, RF25
@@ -54,26 +56,26 @@ Estas son mejoras de UX y defensa en profundidad, no reemplazan la validación s
 
 ### Observación
 
-La capa legacy del frontend (`js/subirimagenes.js:223-258`) implementa una función llamada `comprobarFormatoReal()` que verifica los **magic bytes** (los primeros bytes de un archivo) para confirmar que el contenido real del archivo es JPEG o MP4, independientemente de la extensión del archivo.
+El frontend del fotógrafo (`frontend-fotografo/dom/colecciones/subirimagenes.js`) valida el **tamaño** de cada archivo (`validarTamanoArchivo`), pero **no verifica el contenido real** antes de enviarlo al backend. El `input` de subida solo restringe por extensión (`.jpg,.jpeg,.mp4`) y el navegador reporta el MIME a partir de esa extensión, por lo que no hay una comprobación de los **magic bytes** (los primeros bytes de un archivo) que confirme que el contenido real es JPEG o MP4.
 
 **¿Qué son los magic bytes?** Son los primeros bytes de un archivo que identifican su formato real. Por ejemplo:
 - Todo archivo JPEG real empieza con los bytes `FF D8 FF`
 - Todo archivo MP4 real contiene la cadena `ftyp` en sus primeros 8 bytes
 
-La capa moderna (`dom/colecciones/subirimagenes.js`) **no implementa esta validación**. Simplemente envía el archivo seleccionado al backend sin verificar su contenido real.
+En consecuencia, el archivo se envía al backend sin comprobar su contenido real más allá del `accept` del input y del MIME reportado por el navegador.
 
 ### Ejemplo del problema
 
-Un usuario podría renombrar un archivo `.png` o `.webp` a `.jpg`. El frontend moderno lo aceptaría y lo enviaría al backend. Si el backend rechaza el archivo, el usuario recibiría un error sin entender por qué. Si el backend lo acepta, podría haber problemas de procesamiento (marca de agua, vista previa, etc.).
+Un usuario podría renombrar un archivo `.png` o `.webp` a `.jpg`. El frontend lo aceptaría y lo enviaría al backend. Si el backend rechaza el archivo, el usuario recibiría un error sin entender por qué. Si el backend lo acepta, podría haber problemas de procesamiento (marca de agua, vista previa, etc.).
 
 ### Recomendación para futuras iteraciones
 
-Agregar validación de magic bytes en la capa moderna antes de subir archivos. La implementación de la capa legacy ya existe como referencia y puede reutilizarse. Esto mejoraría la experiencia de usuario al detectar archivos con extensión incorrecta antes de iniciar la subida.
+Agregar validación de magic bytes en el frontend antes de subir archivos. Como referencia sigue existiendo la validación de MIME que el backend sí aplica (`backend/src/validators/MultimediaValidator.php`). Esto mejoraría la experiencia de usuario al detectar archivos con extensión incorrecta antes de iniciar la subida.
 
 ### Archivos relevantes
 
-- `frontend-fotografo/js/subirimagenes.js:223-258` (implementación legacy de referencia)
-- `frontend-fotografo/dom/colecciones/subirimagenes.js:112-138` (capa moderna sin validación)
+- `frontend-fotografo/dom/colecciones/subirimagenes.js` (validación actual: solo tamaño, no magic bytes)
+- `backend/src/validators/MultimediaValidator.php` (validación real de MIME en el servidor)
 
 ---
 

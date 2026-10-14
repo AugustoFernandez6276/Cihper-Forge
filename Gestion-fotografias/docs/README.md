@@ -15,8 +15,12 @@
 | [05-planificacion.md](05-planificacion.md) | **Planificación:** Documento reservado para planificación de sprints (actualmente vacío). |
 | [06-testing.md](06-testing.md) | **Pruebas y Verificación:** Verificación del motor QR nativo, favoritos por colección, subida de archivos >2 MB, galería de colecciones privadas, moderación colaborativa, calidad de descarga en dos niveles, "Mis colecciones" persistente y posters de video. |
 | [07-actas_de_reuniones.md](07-actas_de_reuniones.md) | **Actas de Reuniones Generales:** Registro de minutas internas de equipo y acuerdos operativos (R-01, R-02, etc.). |
-| [08_control_de_cambios.md](08_control_de_cambios.md) | **Control de Cambios:** Bitácora formal de modificaciones de alcance, impacto en backlog y decisiones de equipo (CC-01 a CC-37). |
+| [08_control_de_cambios.md](08_control_de_cambios.md) | **Control de Cambios:** Bitácora formal de modificaciones de alcance, impacto en backlog y decisiones de equipo (CC-01 a CC-41). |
+| [09_control_de_cambios_tecnicos.md](09_control_de_cambios_tecnicos.md) | **Control de Cambios Técnicos:** Registro de cambios tecnológicos, de implementación e infraestructura realizados durante el desarrollo (CCT-01 a CCT-35). |
+| [10-acta_de_cierre.md](10-acta_de_cierre.md) | **Acta de Cierre:** Documento de cierre del proyecto: resumen de sprints, requerimientos cumplidos y no aplicables, pendientes, lecciones aprendidas y aceptación del cliente. |
 | [infraestructura.md](infraestructura.md) | **Documentación de Infraestructura:** Análisis técnico del `Dockerfile`, `docker-compose.yml`, esquemas SQL y mecanismos de respaldo. |
 | [guia_reconstruccion.md](guia_reconstruccion.md) | **Guía de Reconstrucción:** Manual descriptivo paso a paso para levantar y reconstruir el entorno completo de contenedores desde cero. |
 | [project_charter.md](project_charter.md) | **Project Charter:** Acta de constitución del proyecto, justificación de negocio, sponsors, riesgos preliminares y visión. |
 | [etica_uso_de_ia.md](etica_uso_de_ia.md) | **Ética y Uso de IA:** Declaración de buenas prácticas y transparencia en el uso de herramientas asistidas por inteligencia artificial. |
+| [SAST-SonarQube-Reporte.md](SAST-SonarQube-Reporte.md) | **Reporte SAST (SonarQube):** Análisis estático de seguridad y calidad de código: vulnerabilidades, bugs, code smells y deuda técnica remanente. |
+| [implementaciones-futuras.md](implementaciones-futuras.md) | **Implementaciones Futuras:** Hallazgos, riesgos y oportunidades de mejora identificados para futuras iteraciones. |
