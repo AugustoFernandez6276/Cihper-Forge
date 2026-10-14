@@ -9,12 +9,12 @@ defensa final: resume en un solo lugar todo el recorrido del equipo.
 
 ---
 
-**Nombre del proyecto: Cipher Photo**
-**Fecha de cierre: 15/10/2026**
-**Fecha de inicio: 26/06/2026** (ver `project_charter.md`)
-**Duración total: 15 semanas — 5 sprints de 3 semanas — 91 puntos de historia**
-**Equipo: Iván Sandoval (sublíder / backend), Nicolás Negretto (líder / Frontend), Augusto Fernández (Frontend)**
-**Cliente: Lemuel Swec**
+**Nombre del proyecto: Cipher Photo** \
+**Fecha de cierre: 15/10/2026** \
+**Fecha de inicio: 26/06/2026** (ver `project_charter.md`) \
+**Duración total: 15 semanas — 5 sprints de 3 semanas — 91 puntos de historia** \
+**Equipo: Iván Sandoval (sublíder / backend), Nicolás Negretto (líder / Frontend), Augusto Fernández (Frontend)** \
+**Cliente: Lemuel Swec** \
 **Metodología: Scrum** (revisión con el cliente al cierre de cada sprint)
 
 ---
