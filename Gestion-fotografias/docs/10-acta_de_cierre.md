@@ -55,7 +55,7 @@ Fuente: `01-requerimientos.md`; evidencia en `04_sprint_review.md`, `06-testing.
 | **RF4** — Colecciones públicas/privadas con hashtags | Cumplido | SR-01 (HU2) + SR-03 (HU26) |
 | **RF5** — Privacidad permanente de colecciones privadas vía enlace de invitación | Cumplido | SR-02 (HU3, `acceso_colecciones`) |
 | **RF6** — Bloqueo de acceso directo por URL a colecciones privadas | Cumplido | SR-02 (HU20, 403 Forbidden) |
-| **RF7** — Subida de imágenes JPG y videos MP4 con límite por archivo | Cumplido | SR-01 (HU5) + CC-27 (imagen 30 MB) / CC-16 (transporte 900M/1G) |
+| **RF7** — Subida de imágenes JPG y videos MP4 con límite por archivo | Cumplido | SR-01 (HU5) + CC-27 (límite imagen 30 MB) + CC-16 (transporte PHP 900M/1G) |
 | **RF8** — Versión optimizada y ligera para la vista previa | Cumplido | SR-01 (demo: <2 s por imagen) |
 | **RF9** — Marca de agua automática en la vista previa de imágenes JPG | Cumplido | SR-01 (HU14, librería GD) |
 | **RF10** — Descarga directa individual en dos niveles de calidad | Cumplido | SR-02 (HU10) + `06-testing.md` (CC-24/CC-30/CC-32/CC-31) |
@@ -90,7 +90,7 @@ Fuente: `01-requerimientos.md`; evidencia en `04_sprint_review.md`, `06-testing.
 | **RNF8** — Cumplimiento de la Ley 18.331 | Cumplido con observación | Modal HU31 + `03-seguridad.md` (Términos, PSI); *observación:* el consentimiento de clientes e invitados fue revertido por **CC-13 / CCT-13** — solo queda el del fotógrafo |
 | **RNF9** — Términos y Condiciones y Política de Privacidad | Cumplido | `03-seguridad.md` (Términos y Condiciones + Políticas de Seguridad de la Información) |
 
-**Resumen:** de 26 requerimientos funcionales, **23 cumplidos** (RF12, RF22 y RF23 no aplican: fueron eliminados del alcance por CC-03); de 9 requerimientos no funcionales, **9 cumplidos**, 4 de ellos con observaciones menores detalladas arriba.
+**Resumen:** de 23 requerimientos funcionales, **23 cumplidos** (RF12, RF22 y RF23 fueron eliminados del alcance por CC-03 y no aplican); de 9 requerimientos no funcionales, **9 cumplidos**, 4 de ellos con observaciones menores detalladas arriba.
 
 ---
 
@@ -125,7 +125,7 @@ Fuente: `01-requerimientos.md`; evidencia en `04_sprint_review.md`, `06-testing.
 | --- | --- |
 | La ausencia del cliente en las revisiones invalida la validación de alcance | En las cinco Sprint Reviews (SR-01 a SR-05) consta "Respuesta ausente: no fue posible contactar al cliente". El equipo demostró el incremento, pero nunca obtuvo feedback ni aceptación formal; el cierre quedó "entregado" y no "aceptado". Acción correctiva: agendar las cinco revisiones con el cliente al inicio del plan. |
 | Las restricciones institucionales deben salir a la superficie en el charter | La restricción de UTU (equipo menor de edad: sin hosting ni pagos reales) postergó el eje "cobro ágil", que era la prioridad #1 del cliente. Se documentó tarde y obligó a reformular la visión del producto (CC-08). |
-| Registrar los cambios de alcance en el momento, no al final | La bitácora llegó a 41 entradas (CC-01 a CC-41) más 20 cambios técnicos (CCT), varias de ellas correcciones hechas días después de tomada la decisión. Lo que no se registra el mismo día se reconstruye con esfuerzo y queda expuesto en la defensa. |
+| Registrar los cambios de alcance en el momento, no al final | La bitácora llegó a 41 entradas (CC-01 a CC-41) más 35 cambios técnicos (CCT-01 a CCT-35), varias de ellas correcciones hechas días después de tomada la decisión. Lo que no se registra el mismo día se reconstruye con esfuerzo y queda expuesto en la defensa. |
 | Estimar con margen sobre la velocidad real | Se planificó a 20 pts/sprint y se terminó a 18,2 pts/sprint: el plan original de 5 sprints de 20 pts era inalcanzable. La estimación por épicas y la redistribución en sprints de 16 y 15 pts salvaron el cronograma. |
 | La configuración por defecto del entorno rompe la funcionalidad validada | `php.ini` rechazaba archivos >2 MB (CC-16) y `localStorage` explotaba con fotos >2 MB (CC-19) pese a que el backend ya admitía 30 MB/800 MB. Lección: auditar límites del runtime y del navegador antes de estimar una historia. |
 | Las API de frontend no heredan la autorización del backend | Los `<img>/<video>` no envían el header `Authorization`, lo que rompió galerías y moderación en colecciones privadas (CC-21, CC-25). Cualquier recurso multimedia protegido debe descargarse vía `fetch` con token. |
