@@ -1,25 +1,30 @@
 # Documentación de Infraestructura y Contenedores
 
-Este documento detalla la arquitectura de infraestructura local basada en contenedores Docker para el proyecto **Cipher_Forge**, describiendo la configuración del servidor web, entorno de ejecución PHP, base de datos MySQL y la persistencia de datos.
+> **Convenciones:** `COMPARTIDO` = lógica válida en ambos entornos. `LOCAL` = desarrollo/testing/evaluación UTU. `PRODUCCIÓN` = entorno real, no implementado. Todo lo no decidido figura como `PENDIENTE DE DEFINICIÓN`.
+>
+> **Rol del documento:** referencia técnica de arquitectura e infraestructura. Los pasos de reconstrucción viven en `guia_reconstruccion.md`. No duplicar pasos aquí.
+>
+> **Arquitectura implementada vs propuesta:** §§1-4 describen hechos comprobados en `backend/`. §5 describe brechas y trabajo necesario, no una arquitectura aprobada. Ver §6 para decisiones pendientes.
+
+Este documento detalla la arquitectura de infraestructura basada en contenedores Docker para **Cipher_Forge**: servidor web, PHP, MySQL y persistencia. Salvo indicación `PRODUCCIÓN`, describe el stack local.
 
 ---
 
-## 1. Visión General de la Infraestructura
+## 1. Visión General de la Infraestructura [COMPARTIDO en lógica, LOCAL en valores]
 
-La infraestructura se define mediante dos archivos principales ubicados en `backend/`:
-1. `Dockerfile`: Define la imagen personalizada del entorno de backend (Apache + PHP 8.2 + FFmpeg + Extensiones compiladas).
-2. `docker-compose.yml`: Orquesta los servicios de aplicación y base de datos, configurando puertos, redes internas y volúmenes persistentes.
+La infraestructura local se define en `backend/` con `Dockerfile` y `docker-compose.yml` (ver §2-§3). Lógica compartida con producción: API PHP + MySQL 8.0 + almacenamiento en `uploads/` + worker de respaldo/purga. Valores, red y secretos descritos son locales.
 
 ```mermaid
 graph LR
-    subgraph Host ["Máquina Host (Desarrollo / Evaluación UTU)"]
+    subgraph Host ["Máquina Host (Desarrollo / Evaluación UTU) [LOCAL]"]
         P8080["Puerto 8080\n(HTTP API / Web)"]
         P3306["Puerto 3306\n(MySQL Externo)"]
         P8025["Puerto 8025\n(Mailpit UI)"]
+        P1025["Puerto 1025\n(Mailpit SMTP)"]
         CODE["Código Fuente\n(backend/ montado en vivo)"]
     end
 
-    subgraph Docker ["Entorno Docker Compose"]
+    subgraph Docker ["Entorno Docker Compose [LOCAL]"]
         subgraph AppContainer ["Contenedor: cipher_forge_app"]
             APACHE["Apache 2.4 (mod_rewrite)"]
             PHP["PHP 8.2 (gd, pdo_mysql, zip)"]
@@ -31,7 +36,7 @@ graph LR
             WORKER["PHP CLI 8.2\n(cron-backup.php --loop)"]
         end
 
-        subgraph MailpitContainer ["Contenedor: cipher_forge_mail"]
+        subgraph MailpitContainer ["Contenedor: cipher_forge_mail [solo LOCAL]"]
             MAILPIT["Mailpit SMTP\n(puerto 1025 / UI 8025)"]
         end
 
@@ -47,6 +52,7 @@ graph LR
     P8080 --> APACHE
     P3306 --> MYSQL
     P8025 --> MAILPIT
+    P1025 --> MAILPIT
     CODE -.->|Bind Mount| AppContainer
     AppContainer -->|Red Interna: DB_HOST=db:3306| DBContainer
     AppContainer -->|Red Interna: SMTP_HOST=mailpit:1025| MailpitContainer
@@ -56,27 +62,26 @@ graph LR
     MYSQL --- V_DB
 ```
 
+> **Nota:** en producción no hay bind mount, ni Mailpit, ni puertos DB/SMTP publicados, ni HTTP sin TLS. Ver §5.
+
 ---
 
-## 2. Especificación del Dockerfile (`backend/Dockerfile`)
+## 2. Especificación del Dockerfile (`backend/Dockerfile`) [COMPARTIDO con notas PRODUCCIÓN]
 
-<!-- WHAT: Archivo de construcción de la imagen de aplicación PHP 8.2 con Apache -->
-<!-- WHY: Empaqueta códecs de video, librerías gráficas y extensiones de base de datos sin contaminar el SO del host -->
-<!-- HOW: Basado en Debian Buster/Bullseye vía imagen oficial php:8.2-apache -->
+<!-- WHAT: Imagen PHP 8.2 + Apache. WHY: Empaqueta FFmpeg/GD/pdo_mysql sin contaminar el host. HOW: Base oficial php:8.2-apache sobre Debian. -->
 
-> **Nota de trazabilidad:** Los detalles de FFmpeg, Docker y Filesystem de esta sección implementan la épica EP4 de 01-requerimientos.md, que quedó redactada en forma general a propósito por CC-08. Ver 01-requerimientos.md EP4 y 02-modelado.md Capa de Almacenamiento.
+> **Nota de trazabilidad:** FFmpeg, Docker y filesystem implementan la épica EP4 de 01-requerimientos.md (redactada en general por CC-08). Ver `01-requerimientos.md EP4` y `02-modelado.md Capa de Almacenamiento`.
 
-### 2.1 Código y Desglose Línea por Línea
+### 2.1 Código y desglose
+
+Extracto fiel — fuente: `backend/Dockerfile:3-36` (se omiten comentarios de cabecera sin valor normativo):
 
 ```dockerfile
-# 1. Imagen base oficial con PHP 8.2 y servidor web Apache sobre Debian Linux
+# 1. Base oficial PHP 8.2 + Apache sobre Debian
 FROM php:8.2-apache
 
-# 2. Instalación de paquetes del sistema operativo:
-#    - ffmpeg: binario CLI para recortes y transcodificación de videos de hasta 800 MB (RF26)
-#    - default-mysql-client: cliente MySQL para diagnóstico desde el contenedor
-#    - libpng-dev, libjpeg-dev, libfreetype6-dev: cabeceras C para soporte de fuentes y renderizado de imágenes en GD
-#    - libzip-dev, zip, unzip: utilidades para manipulación de archivos comprimidos
+# 2. ffmpeg, default-mysql-client (diagnóstico), libpng-dev, libjpeg-dev,
+#    libfreetype6-dev, libzip-dev, zip, unzip
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     default-mysql-client \
@@ -89,198 +94,221 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# 3. Configuración y compilación de la extensión GD con soporte FreeType y JPEG (impresión de marca de agua en RF9)
-#    Instalación concurrente (-j) de extensiones nativas: GD, pdo_mysql (acceso a BD) y zip
+# 3. GD con FreeType/JPEG + pdo_mysql + zip
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd pdo_mysql zip
 
-# 4. Habilitación del módulo mod_rewrite de Apache para soportar enrutamiento Front Controller (index.php)
+# 4. mod_rewrite para Front Controller (index.php)
 RUN a2enmod rewrite
 
-# 5. Directorio de trabajo predeterminado dentro del contenedor
+# 5. Workdir
 WORKDIR /var/www/html
 
-# 6. Configuración PHP del contenedor (CF-NUEVO): alinea los límites de subida con los
-#    que ya valida la aplicación (imagen 30 MB / video 800 MB). Cargado por Apache en
-#    /usr/local/etc/php/conf.d/, sobrescribe upload_max_filesize=2M y post_max_size=8M
-#    por defecto de php:8.2-apache, que rechazaban cualquier archivo >2 MB.
+# 6. Límites PHP alineados a negocio (imagen 30 MB / video 800 MB).
+#    Sobrescribe upload_max_filesize=2M / post_max_size=8M por defecto.
 COPY php.ini /usr/local/etc/php/conf.d/99-cipher-forge.ini
 
-# 7. Script de entrada: crea carpetas de uploads, aplica migración y respeta CMD
+# 7-8. Entrypoint + CMD (CF-12). Entrypoint respeta "$@":
+#    app → apache2-foreground; worker → php cron-backup.php --loop
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# 8. Comando por defecto: Apache en primer plano (CF-12). El entrypoint respeta "$@",
-#    por lo que el servicio `worker` de compose lo reemplaza por `php cron-backup.php --loop`.
 CMD ["apache2-foreground"]
-
-# 9. Entry point: ejecuta docker-entrypoint.sh antes de CMD (crea uploads/, aplica migration.sql)
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 ```
 
-Además, la imagen define un entrypoint propio en `backend/docker-entrypoint.sh` que:
-1. Crea y da permisos a las carpetas de `uploads/` (`originals`, `previews`, `standard`).
-2. Aplica la migración idempotente `database/migration.sql` al arrancar (tras esperar a MySQL).
-3. Ejecuta `exec "$@"` (CF-12): respeta el `CMD`/`command` de compose — `app` ejecuta el `CMD` por defecto de la imagen (`apache2-foreground`), y `worker` ejecuta `php cron-backup.php --loop`.
+Fuente: `backend/Dockerfile:3-36`.
 
-### 2.2 Límites de Subida del Runtime (CF-NUEVO)
+Entrypoint (`backend/docker-entrypoint.sh:1-44`):
 
-El contenedor PHP trae por defecto `upload_max_filesize=2M` y `post_max_size=8M`, que rechazaban cualquier archivo >2 MB *antes* de entrar al código de la aplicación. Para que el tope real sean las reglas de negocio (imagen 30 MB / video 800 MB según `MultimediaValidator`, CF-03/RF7), la imagen inyecta `backend/php.ini` como `99-cipher-forge.ini`:
+1. Crea `uploads/originals,previews,standard` con `www-data:www-data 775`.
+2. Espera MySQL con `mysql --skip-ssl` (30 reintentos) y aplica `database/migration.sql` idempotente en cada arranque.
+3. `exec "$@"`.
 
-| Directiva | Valor | Justificación |
+> **Notas PRODUCCIÓN:**
+> * Sin `USER`: el contenedor corre como root (hallazgo SAST vigente). `PENDIENTE DE DEFINICIÓN`: usuario no privilegiado.
+> * `AllowOverride` debe permitir `.htaccess` de `uploads/` y `backups/` (`Require all denied`), o migrar la denegación a config del servidor.
+> * En producción la imagen debe ser inmutable (sin bind mount) y versionada para rollback. `PENDIENTE DE DEFINICIÓN`.
+
+### 2.2 Límites del runtime (CF-NUEVO) [COMPARTIDO]
+
+`backend/php.ini` como `99-cipher-forge.ini` (`backend/php.ini:7-20`):
+
+| Directiva | Valor local | Justificación |
 |---|---|---|
-| `file_uploads` | On | Subidas habilitadas. |
-| `upload_max_filesize` | 900M | Video de 800 MB + margen. |
-| `post_max_size` | 1G | Varias fotos en una misma petición multipart. |
-| `memory_limit` | 512M | Procesamiento GD (imágenes) y transcodificación de video. |
-| `max_execution_time` / `max_input_time` | 600 | Subidas grandes (video 800 MB). |
+| `file_uploads` | On | Subidas habilitadas |
+| `upload_max_filesize` | 900M | Video 800 MB + margen (`MultimediaValidator.php:17`) |
+| `post_max_size` | 1G | Multipart con varias fotos |
+| `memory_limit` | 512M | GD + FFmpeg |
+| `max_execution_time` / `max_input_time` | 600 | Videos 800 MB |
 
-> **Nota de trazabilidad:** Nivel de transporte (PHP/Apache), mientras que CF-03 valida formatos y tamaños por tipo de archivo en la capa de aplicación. Ver 02-modelado.md y CC-16.
-
----
-
-## 3. Especificación de Docker Compose (`backend/docker-compose.yml`)
-
-Docker Compose orquesta **cuatro servicios** comunicados mediante una red interna tipo puente (`bridge`): `app` (web/API), `mailpit` (buzón SMTP de desarrollo), `worker` (mantenimiento programado) y `db` (MySQL). Los servicios `app` y `worker` comparten la imagen local `cipher-forge:dev`, construida una sola vez desde el mismo `Dockerfile`.
-
-### 3.1 Servicios Definidos
-
-#### A. Servicio `app` (Contenedor `cipher_forge_app`)
-* **Construcción:** Construye la imagen local `cipher-forge:dev` utilizando el archivo `./Dockerfile` (compartida con el servicio `worker`).
-* **Mapeo de Puertos:** `8080:80` (el puerto 80 del servidor Apache interno se expone en el puerto 8080 del host local).
-* **Volúmenes:**
-  * `.:/var/www/html`: Montaje enlazado (*bind mount*) que sincroniza en tiempo real los cambios de código fuente sin necesidad de reconstruir la imagen.
-  * `uploads_data:/var/www/html/uploads`: Volumen gestionado por Docker para almacenar de forma persistente los archivos multimedia originales y previsualizaciones, evitando que se pierdan al reiniciar contenedores.
-* **Variables de Entorno:**
-  * `DB_HOST=db`: Resuelve dinámicamente la IP del contenedor de base de datos a través del DNS interno de Docker.
-  * `DB_NAME=cipher_forge`: Nombre del esquema de base de datos.
-  * `DB_USER=cipher_user` / `DB_PASS=cipher_password`: Credenciales del usuario de la aplicación.
-  * `DB_PORT=3306`: Puerto estándar de escucha de MySQL.
-  * `FRONTEND_URL=http://127.0.0.1:5500/Gestion-fotografias`: Raíz del frontend estático usada por el backend para armar las URLs codificadas en los QR (CF-06).
-  * `SMTP_HOST=mailpit` / `SMTP_PORT=1025` / `MAIL_FROM` / `MAIL_FROM_NAME`: Envío de correos de verificación al buzón local Mailpit (CF-02).
-* **Dependencias:** `depends_on: [db, mailpit]` garantiza que la base de datos y el buzón inicien antes que la aplicación.
-
-#### B. Servicio `mailpit` (Contenedor `cipher_forge_mail`)
-* **Imagen:** `axllent/mailpit:latest` (buzón SMTP de desarrollo, CF-02 / RF18). Intercepta los correos generados por la app y los expone en una interfaz web; nada sale de la máquina.
-* **Mapeo de Puertos:** `8025:8025` (interfaz web de lectura del buzón) y `1025:1025` (entrada SMTP que usa la app).
-* **Reinicio:** `restart: always`.
-
-#### C. Servicio `worker` (Contenedor `cipher_forge_worker`)
-* **Construcción:** Comparte la imagen `cipher-forge:dev` construida con el mismo `./Dockerfile` que `app`.
-* **Comando:** `php cron-backup.php --loop` — ejecuta como proceso residente el script de mantenimiento (CF-12): **respaldo diario** de la base de datos (HU13 / RNF5-RNF7) y **purga de archivos colaborativos no aprobados tras 24 horas** (HU12 / RF15). No expone puertos.
-* **Volúmenes:**
-  * `.:/var/www/html`: mismo bind mount de código que `app` (lee el script y escribe los volcados en `backend/backups/`).
-  * `uploads_data:/var/www/html/uploads`: mismo volumen persistente (borra físicamente los archivos colaborativos purgados).
-* **Variables de Entorno:** las mismas credenciales de BD que `app` (`DB_*`) más los intervalos del bucle:
-  * `BACKUP_INTERVAL_SEG=86400`: respaldo cada 24 h.
-  * `PURGE_INTERVAL_SEG=3600`: purga colaborativa cada 1 h.
-* **Reinicio:** `restart: unless-stopped`.
-* **Dependencias:** `depends_on: [db]`.
-
-#### D. Servicio `db` (Contenedor `cipher_forge_db`)
-* **Imagen:** Imagen oficial `mysql:8.0`.
-* **Mapeo de Puertos:** `3306:3306` (permite conexiones externas de diagnóstico mediante clientes como DBeaver, MySQL Workbench o la extensión de VS Code).
-* **Variables de Entorno:**
-  * `MYSQL_ROOT_PASSWORD=root_password`: Contraseña administrativa de MySQL.
-  * `MYSQL_DATABASE=cipher_forge`: Creación automática de la base de datos al inicializar el contenedor.
-  * `MYSQL_USER=cipher_user` / `MYSQL_PASSWORD=cipher_password`: Usuario no privilegiado asignado a la aplicación.
-* **Volúmenes:**
-  * `db_data:/var/lib/mysql`: Persistencia física de los archivos de tablas y datos de MySQL.
-  * `./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql`: Montaje del script SQL de inicialización. MySQL lo ejecuta automáticamente la primera vez que se crea el volumen de datos.
+> Nivel transporte, mientras CF-03 valida por tipo en aplicación (`MultimediaValidator.php:43-63`). Ver `02-modelado.md` y CC-16. En producción estos valores implican riesgo DoS sin throttling/cuotas (ver §5.5, §5.11).
 
 ---
 
-## 4. Scripts y Mecanismos de Persistencia
+## 3. Especificación de Docker Compose (`backend/docker-compose.yml`) [LOCAL, con tabla a PRODUCCIÓN]
 
-### 4.1 Script de Esquema de Datos (`backend/database/schema.sql`)
-Define la estructura DDL para las 11 entidades del sistema:
-- Creación condicional del esquema: `CREATE DATABASE IF NOT EXISTS cipher_forge;`
-- Creación de tablas maestras e hijas con claves foráneas e integridad referencial (`ON DELETE CASCADE`).
-- Índices únicos sobre correos electrónicos (`email`), nombres de hashtags y tokens QR.
+Cuatro servicios en red puente: `app`, `mailpit` (solo desarrollo), `worker`, `db`. `app` y `worker` comparten imagen `cipher-forge:dev`. Fuente: `backend/docker-compose.yml:1-97`.
 
-### 4.2 Mecanismo de Respaldo Diario y Rotación (RNF5, RNF6, RNF7)
+### 3.1 Servicios definidos [LOCAL]
 
-Para satisfacer los requerimientos no funcionales de respaldo diario de la base de datos conservando las últimas 3 copias de forma persistente y portable, el sistema prescinde de scripts bash externos o dependencias del sistema operativo host. En su lugar, implementa una solución autocontenida y desacoplada en PHP nativo mediante `App\services\BackupService`, orquestada por el script de consola `backend/cron-backup.php` de dos maneras complementarias (CF-12):
-- **Con el servicio `worker` de docker-compose** (recomendado): lo ejecuta `php cron-backup.php --loop` como proceso residente; automatiza el respaldo diario y la purga colaborativa sin depender del host ni del tráfico web.
-- **Invocación manual o cron del host**: `php cron-backup.php` (one-shot) ejecuta ambas tareas una vez y termina.
-- **Vía API REST**: `POST /sistema/backup` dispara el respaldo puntual.
+#### A. `app` (`cipher_forge_app`)
 
-> **Nota de trazabilidad:** Este mecanismo implementa el RF15 generalizado y el HU12 simplificado aprobados en CC-08 y CC-10. En requerimientos solo queda aprobar el material y eliminar lo no aprobado tras 24 horas. El detalle de tarea programada vive aquí, no en 01-requerimientos.md.
+* **Build/imagen:** `./Dockerfile` → `cipher-forge:dev`.
+* **Puertos:** `8080:80` (HTTP, sin TLS).
+* **Volúmenes:** `.:/var/www/html` (bind mount solo-local) + `uploads_data:/var/www/html/uploads`.
+* **Env:** `DB_HOST=db`, `DB_NAME=cipher_forge`, `DB_USER=cipher_user`, `DB_PASS=(ver compose, desarrollo)`, `DB_PORT=3306`; `FRONTEND_URL=http://localhost:5501/Gestion-fotografias` (valor efectivo; versiones con `127.0.0.1:5500` desactualizadas); `SMTP_HOST=mailpit`, `SMTP_PORT=1025`, `MAIL_FROM`, `MAIL_FROM_NAME`; `COOKIE_NAME=cipher_forge_token`, `COOKIE_SECURE=false` (HTTP), `COOKIE_SAMESITE=Strict`; `SISTEMA_ALLOWED_IPS` solo como comentario opcional (`docker-compose.yml:40`). Credenciales de desarrollo, no usar en producción.
+* **Depende:** `db`, `mailpit`. **Sin `restart:`** (a diferencia de `worker: unless-stopped`, `mailpit/db: always`).
 
-Todos los archivos de volcado se almacenan físicamente en el directorio del proyecto:
-`backend/backups/` con la nomenclatura `backup_cipher_forge_{YYYY-MM-DD_HH-mm-ss}.sql`.
+#### B. `mailpit` (`cipher_forge_mail`) [solo LOCAL]
 
-#### Componentes de la Arquitectura de Respaldo
+`axllent/mailpit:latest` (CF-02 / RF18). Puertos `8025:8025` (UI) y `1025:1025` (SMTP). Nada sale de la máquina. **No desplegar en producción.**
 
-1. **Directorio de Persistencia (`backend/backups/`):**
-   - Aloja los volcados SQL generados por el sistema.
-   - Es resuelto dinámicamente mediante la clase de configuración (`App\Core\Config::backupsDir()`).
+#### C. `worker` (`cipher_forge_worker`)
 
-2. **Servicio Nuclear de Respaldo (`backend/src/services/BackupService.php`):**
-   - **Extracción de Esquema y Datos con PDO:** Consulta la base de datos mediante `SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'`, extrae la estructura DDL con `SHOW CREATE TABLE` y vuelca los registros DML con sentencias SQL preparadas y entrecomillado seguro (`$pdo->quote()`).
-   - **Aislamiento de la tabla de auditoría:** Excluye deliberadamente la tabla `backups` durante el volcado para evitar referencias circulares o inconsistencias de estado.
-   - **Rotación automática FIFO (RNF6):** Consulta los registros existentes en la tabla `backups` ordenados por `fecha_backup ASC`. Cuando se alcanzan 3 o más copias, calcula los excedentes y elimina tanto el archivo físico en `backend/backups/` (`unlink()`) como su fila correspondiente en la base de datos (`DELETE FROM backups WHERE id_backup = :id`) antes de registrar el nuevo volcado.
-   - **Registro de auditoría (RNF7):** Inserta en la tabla `backups` la ruta relativa (`backups/backup_cipher_forge_...sql`), el nombre del archivo y la marca de tiempo exacta (`NOW()`).
+Misma imagen. `command: php cron-backup.php --loop` (CF-12): respaldo diario (HU13/RNF5-RNF7) + purga colaborativa >24h (HU12/RF15). Sin puertos. Volúmenes código + `uploads_data`. Env `DB_*` + `BACKUP_INTERVAL_SEG=86400`, `PURGE_INTERVAL_SEG=3600`. `restart: unless-stopped`. `depends_on: [db]`.
 
-3. **Script CLI de Mantenimiento Automatizado (`backend/cron-backup.php`):**
+#### D. `db` (`cipher_forge_db`)
 
-```php
-<?php
-// WHAT: Script CLI ejecutable para tareas programadas de mantenimiento y respaldo de base de datos.
-// WHY: Automatiza el cumplimiento de RNF5, RNF6, RNF7 y la purga colaborativa (RF15) sin intervención manual ni dependencias del host.
-// HOW: Inicializa el autoloader PSR-4 nativo, ejecuta BackupService con rotación en backend/backups/
-//      y purga archivos expirados. Modo --loop (worker) con intervalos por entorno.
+`mysql:8.0`. Puerto `3306:3306` publicado (conveniencia local). Env `MYSQL_ROOT_PASSWORD=(ver compose, desarrollo)`, `MYSQL_DATABASE=cipher_forge`, `MYSQL_USER/MYSQL_PASSWORD=(ver compose, desarrollo)`. Volúmenes `db_data:/var/lib/mysql` + `./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql` (solo primera vez del volumen).
 
-declare(strict_types=1);
+### 3.2 Tabla local → producción
 
-// Autoloader PSR-4 nativo (App\ -> src/)
+| Aspecto | LOCAL (hecho) | PRODUCCIÓN (requerido, `PENDIENTE DE DEFINICIÓN` donde aplique) |
+|---|---|---|
+| Red | HTTP `:8080`, MySQL `:3306`, Mailpit `:8025/:1025` publicados | HTTPS con terminación TLS; MySQL sin puerto público; sin Mailpit |
+| Código | Bind mount en `app`/`worker` | Imagen inmutable, sin bind mount |
+| Frontend | Live Server `:5501`, `API_URL=http://localhost:8080` en `frontend-*/services/config.js:2` | Origen HTTPS fijo; `API_URL`/`FRONTEND_URL` como parámetros de despliegue |
+| Cookies | `COOKIE_SECURE=false`, `SameSite=Strict` mismo-site local | `COOKIE_SECURE=true`; topología mismo-site vs cross-site `PENDIENTE DE DEFINICIÓN` (Strict exige mismo site) |
+| Secretos | En compose, de desarrollo | `JWT_SECRET`, `DB_*`, `SMTP_*` fuera de repo/imagen |
+| Supervisión | `app` sin `restart`, sin healthcheck | `restart` + healthcheck (`/api/ping` hoy no chequea BD) |
 
-use App\services\BackupService;
-use App\services\MultimediaService;
+---
 
-$modoLoop = in_array('--loop', $argv, true);
+## 4. Scripts y mecanismos de persistencia [COMPARTIDO en lógica]
 
-// Intervalos (segundos) en modo --loop; sobrescribibles por entorno.
-$intervaloBackupSeg = max(1, (int) (getenv('BACKUP_INTERVAL_SEG') ?: 86400)); // diario
-$intervaloPurgaSeg  = max(1, (int) (getenv('PURGE_INTERVAL_SEG')  ?: 3600));  // horario
+### 4.1 Esquema (`backend/database/schema.sql`) [COMPARTIDO]
 
-$ultimoBackup = 0;
-$ultimaPurga  = 0;
+11 tablas (`schema.sql:3-87`): `usuarios` (padre), `clientes`, `fotografos` (`politicas_aceptadas`), `colecciones`, `multimedia` (`ruta_original`, `vista_previa`, `poster`, `tamanio`, `es_invitado`, `aprobado`, `tipo`), `favoritos` (a `colecciones.id`, CC-15), `acceso_colecciones`, `qr_tokens` (`colaborativo` 24h / `acceso` permanente), `hashtags`, `coleccion_hashtags`, `backups`. FK con `ON DELETE CASCADE`, `email` UNIQUE.
 
-do {
-    $ahora = time();
-    $correrBackup = ($ahora - $ultimoBackup) >= $intervaloBackupSeg;
-    $correrPurga  = ($ahora - $ultimaPurga)  >= $intervaloPurgaSeg;
+> **Advertencia BLOQUEANTE:** `backend/database/migration.sql:50` ejecuta `DELETE FROM favoritos;` incondicional y `docker-entrypoint.sh:33-38` lo aplica en **cada arranque**. Cada reinicio vacía `favoritos`. No usar en producción sin corrección. Además la redefinición de FK por nombre `favoritos_ibfk_2` (`migration.sql:52-66`) es frágil entre versiones.
 
-    try {
-        // 1. Purga de colaborativos no aprobados > 24h (HU12 / RF15)
-        if ($correrPurga) {
-            $multimediaService = new MultimediaService();
-            $purgados = $multimediaService->purgarExpirados();
-            echo "[OK] Archivos colaborativos expirados purgados: {$purgados}\n";
-            $ultimaPurga = $ahora;
-        }
+### 4.2 Respaldo diario y rotación (RNF5,RNF6,RNF7) [COMPARTIDO en lógica, LOCAL en almacenamiento]
 
-        // 2. Respaldo de base de datos con rotación (HU13 / RNF5, RNF6, RNF7)
-        if ($correrBackup) {
-            $backupService = new BackupService();
-            $backup = $backupService->generarBackup();
-            echo "[OK] Respaldo generado en backend/backups/: {$backup['nombre_backup']} ({$backup['tamanio_kb']} KB)\n";
-            $ultimoBackup = $ahora;
-        }
+Solución autocontenida PHP sin `mysqldump` ni cron del host: `App\services\BackupService` + `backend/cron-backup.php` (CF-12):
 
-        if (!$modoLoop) { break; }
-        sleep(60);
-    } catch (Throwable $e) {
-        echo "[ERROR] Fallo en tareas programadas: " . $e->getMessage() . "\n";
-        if (!$modoLoop) { exit(1); }
-        sleep(60);
-    }
-} while ($modoLoop);
+* **Worker (recomendado local):** `php cron-backup.php --loop` (respaldo diario + purga horaria).
+* **One-shot:** `php cron-backup.php` (manual/cron host).
+* **API:** `POST /sistema/backup`, `GET /sistema/backups` (restringidos por `SistemaController::restringirALocal`, H02).
 
-exit(0);
-```
+Volcados en `backend/backups/backup_cipher_forge_{YYYY-MM-DD_HH-mm-ss}.sql`.
 
-4. **Endpoints de Control vía API REST (`backend/routes.php`):**
-   - `POST /sistema/backup`: Permite disparar manualmente el proceso de respaldo y rotación desde el panel administrativo o herramientas de prueba, retornando el estado y tamaño del archivo en formato JSON.
-   - `GET /sistema/backups`: Retorna el historial de los respaldos vigentes registrados en la tabla `backups`.
+**Componentes:**
+
+1. **`backend/backups/`:** resuelto por `App\Core\Config::backupsDir()`. Protegido por `backend/backups/.htaccess` (`Require all denied`, H01). Tres volcados versionados en git pese a `backend/.gitignore:11` — no versionar respaldos.
+2. **`BackupService.php:28-106`:** volcado PDO (`SHOW FULL TABLES`, `SHOW CREATE TABLE`, `$pdo->quote()`), excluye `backups`, rotación FIFO a 3 copias, auditoría en tabla `backups` (`NOW()`).
+3. **`cron-backup.php:32-64`:** intervalos por entorno (`BACKUP_INTERVAL_SEG`, `PURGE_INTERVAL_SEG`), `MultimediaService::purgarExpirados` + `generarBackup`.
+4. **API (`backend/routes.php:90-93`):** `POST /sistema/backup`, `GET /sistema/backups`, `POST /sistema/limpiar-colaborativos`.
+
+> **Límites para producción (ver §5.8):** sin transacción consistente (riesgo con escritura concurrente), solo disco local, sin off-site, sin restore documentado/probado. `rotarBackups` borra físico aun si `unlink` falla.
+
+---
+
+## 5. Arquitectura y requisitos de producción [PRODUCCIÓN — brechas, no hechos]
+
+> Nada de esta sección está implementado ni aprobado como decisión de despliegue. Cada ítem indica estado actual, trabajo necesario y clasificación BLOQUEANTE / NECESARIA / RECOMENDADA / PENDIENTE DE DECISIÓN.
+
+### 5.1 Configuración por entorno y secretos
+
+* **Actual:** `environment:` con valores de desarrollo; `backend/.env` inerte (sin dotenv, solo `getenv()` en `Database.php:33-38`, `Config.php:19,99`, `Mailer.php:67-80`, `CookieAuth.php:23-58`); `.env.example` incompleto (omite `SMTP_*`); `JWT_SECRET` ausente → autogenerado en `uploads/.jwt_secret` (`Config.php:24-36`, `0600`).
+* **Requerido:** secretos fuera de repo/imagen; `JWT_SECRET` obligatorio (multi-réplica imposible sin secreto compartido); plantilla completa. **BLOQUEANTE.** Valores reales `PENDIENTE DE DEFINICIÓN`.
+
+### 5.2 Servidor, HTTPS, CORS y red
+
+* **Actual:** Apache HTTP `:80`; `public/index.php:75-81` emite `Access-Control-Allow-Origin: *` a orígenes no locales; expone `Content-Disposition, Content-Length`; `COOKIE_SECURE=false`.
+* **Requerido:** TLS + HSTS + `COOKIE_SECURE=true`; CORS con lista cerrada (un solo `FRONTEND_URL` insuficiente para múltiples orígenes); sin puertos DB/SMTP públicos; cabeceras de seguridad. **BLOQUEANTE** (CORS `*`, sin TLS). Elección TLS/proxy `PENDIENTE DE DEFINICIÓN`.
+
+### 5.3 Persistencia y almacenamiento de fotografías
+
+* **Actual:** `uploads_data` (`originals/`, `previews/`, `standard/`) + `db_data`; nombres aleatorios `bin2hex(random_bytes(16))` (`MediaProcessor.php:25-28`); denegación por `.htaccess` dependiente de `AllowOverride`.
+* **Requerido:** persistencia gestionada + snapshots; Object Storage/CDN `PENDIENTE DE DEFINICIÓN` según volumen/retención (P5); `AllowOverride` verificado o denegación en config. **NECESARIA.**
+
+### 5.4 Autenticación, autorización y permisos
+
+* **Actual:** JWT HS256 24h (`Jwt.php`, `Config.php:40-43`), cookie HttpOnly + Bearer + fallback `?token=` (`AuthMiddleware.php:103-116,87-90`); regla central `verificarAccesoALaColeccion` (`MultimediaService.php:512-530`); logout stateless; sin throttling en `/auth/login`, `/auth/verificar-email` (6 dígitos), `/auth/reenviar-codigo`; `GET /fotografos`, `/{id}` públicos con email/teléfono (`UserRepository.php:212-242`).
+* **Requerido:** eliminar/limitar `?token=`; throttling/lockout; revisar exposición de datos personales (Ley 18.331, `PENDIENTE DE DEFINICIÓN`); anti-CSRF adicional a `SameSite`. **BLOQUEANTE** (`?token=`, sin throttling) + **NECESARIA** (privacidad).
+
+### 5.5 Validación, errores y exposición
+
+* **Actual:** MIME real + 30 MB/800 MB + título ≤60/descripción ≤90/hashtag ≤40; registro sin límites de longitud vs VARCHAR (90/60/30) → 500 en lugar de 400; `index.php:102` filtra `$e->getMessage()` en 500; `display_errors=0`/`log_errors=1` + `register_shutdown_function` 500 JSON (`index.php:7-30`).
+* **Requerido:** completar longitudes, convertir carrera de duplicado en 409, mensaje 500 genérico sin detalles. **BLOQUEANTE** (fuga) + **NECESARIA** (validación).
+
+### 5.6 Dependencias y ejecución
+
+* **Actual:** sin Composer/npm; `php:8.2-apache`, `mysql:8.0`, `axllent/mailpit:latest` sin pin de versión; GD/FFmpeg síncronos en request (`max_execution_time=600`); subida invitada anónima hasta 800 MB/1G sin rate limiting (`routes.php:72`, `php.ini:10-13`).
+* **Requerido:** pin de versiones, throttling/cuotas, procesado asíncrono o límites operativos. **BLOQUEANTE** (subida anónima sin tasa).
+
+### 5.7 Migraciones y consistencia
+
+* **Actual:** `schema.sql` + `migration.sql` idempotente con `information_schema`, aplicado en cada boot sin lock.
+* **Requerido:** eliminar `DELETE FROM favoritos`, migración versionada con lock/job único para réplicas. **BLOQUEANTE.**
+
+### 5.8 Copias de seguridad y recuperación
+
+* **Actual:** 3 copias locales, auditoría en `backups`, purga 24h. Sin restore, sin off-site, sin consistencia transaccional.
+* **Requerido:** off-site, RPO/RTO, restore probado y runbook. `PENDIENTE DE DEFINICIÓN`. **BLOQUEANTE.**
+
+### 5.9 Logs, monitorización y diagnóstico
+
+* **Actual:** `docker compose logs`, `/api/ping` sin chequeo DB, sin métricas.
+* **Requerido:** healthcheck con DB, logs estructurados, monitorización/alertas. `PENDIENTE DE DEFINICIÓN`. **NECESARIA** (salud) + **RECOMENDADA** (observabilidad).
+
+### 5.10 Despliegue, post-despliegue y reversión
+
+* **Actual:** `compose up --build -d`, `stop/start`, `down -v` (destructivo).
+* **Requerido:** imagen inmutable versionada, migración controlada, comprobaciones (§ guia 2.4), rollback (snapshot + imagen). Procedimiento ejecutable `PENDIENTE DE DEFINICIÓN`. **NECESARIA.**
+
+### 5.11 Rendimiento, disponibilidad, privacidad y mantenimiento
+
+Sin paginación en listados; FFmpeg/GD síncronos; `memory_limit=512M`; divergencia horaria PHP/MySQL (`time()` vs `NOW()`); `app` sin `restart`. Privacidad: directorio público con datos de contacto. **NECESARIA** (paginación, TZ, restart) + **RECOMENDADA** (rendimiento, headers).
+
+### 5.12 Pruebas antes de producción
+
+Existente (equipo, no re-ejecutado aquí): `backend/FAILS-TESTED.md` (62 E2E), `backend/Done.md` (correcciones 2026-09-07), `docs/06-testing.md` (varias `Pendiente de confirmar en navegador`). Exigible: E2E, restauración, carga, revisión SAST con Quality Gate en verde. Criterios `PENDIENTE DE DEFINICIÓN`.
+
+---
+
+## 6. Riesgos, restricciones y decisiones pendientes
+
+**Clasificación:** BLOQUEANTE impide despliegue; NECESARIA debe resolverse por requisito; RECOMENDADA mejora seguridad/operación; PENDIENTE DE DECISIÓN requiere PM/cliente.
+
+| ID | Riesgo / brecha | Evidencia | Clase |
+|---|---|---|---|
+| B1 | Sin TLS, `COOKIE_SECURE=false` | `compose:10,36` | BLOQUEANTE |
+| B2 | `DELETE FROM favoritos` en cada boot | `migration.sql:50` + `entrypoint:33-38` | BLOQUEANTE |
+| B3 | Subida anónima sin tasa (800 MB/1G) | `routes.php:72`, `php.ini:10-13` | BLOQUEANTE |
+| B4 | Secretos dev + `JWT_SECRET` ausente + dumps en git | `compose:14-40`, `Config.php:24-36`, `git ls-files backups/` | BLOQUEANTE |
+| B5 | CORS `*` + fuga 500 + JWT en URL | `index.php:80,102`, `AuthMiddleware:87-90` | BLOQUEANTE |
+| B6 | SMTP plano, Mailpit no-prod | `Mailer.php:91-146` | BLOQUEANTE |
+| B7 | Sin restore/off-site/consistencia | `BackupService.php:111-164` | BLOQUEANTE |
+| N1 | Sin `restart` en `app`, sin healthcheck (`/api/ping` no chequea BD) | `docker-compose.yml:3-43`, `HomeController.php:13-20` | NECESARIA |
+| N2 | Frontend sin hosting; `API_URL` hardcodeada | `frontend-*/services/config.js:2` | NECESARIA |
+| N3 | Validación longitudes registro, carrera duplicado 409/500, sin paginación, TZ no fijada | `AuthValidator.php:20-69`, `schema.sql:3-13`, `AuthService.php:38-48` | NECESARIA |
+| N4 | Directorio público expone email/teléfono | `UserRepository.php:212-242` | NECESARIA |
+| R1 | Root, headers, logs, throttling, sesión 24h tras logout | `Dockerfile`, `index.php`, `Jwt/Config` | RECOMENDADA |
+
+**Decisiones P1-P10 `PENDIENTE DE DEFINICIÓN`:** P1 alcance (¿sustituye exclusión UTU? `01 §10.5`), P2 proveedor/entorno (sin imponer), P3 dominios/mismo-site, P4 SMTP real, P5 volumen/retención, P6 off-site/RPO-RTO, P7 privacidad directorio, P8 secretos/TLS obligatorios, P9 operador, P10 modelo `/sistema/*` y aceptación/testing. Sin estas no hay diseño final.
+
+**Restricciones:** no exponer secretos en docs; no imponer proveedor/cloud/BD/herramienta; distinguir hecho/deducción/propuesta/pendiente; no declarar pruebas no ejecutadas.
+
+---
+
+## Trazabilidad
+
+* Requisitos: `01-requerimientos.md` (RF7/RF26 30 MB/800 MB, RF15/HU12 purga, HU13/RNF5-RNF7, EP4/EP7, §10 excluido prod, RNF4 futuro prod).
+* Modelo: `02-modelado.md §1-§2` (capas, ERD 11 tablas, flujos subida/descarga).
+* Seguridad: `03-seguridad.md` (amenazas, Términos, PSI; §4.1 desactualizado), Ley 18.331.
+* Cambios: CC-11/CCT-11 (worker), CC-14 (postergado `/sistema/*`, R-03), CC-16/CCT-16 (php.ini), CC-27 (30 MB).
+* Backend: `routes.php`, `Config.php`, `Database.php`, `AuthMiddleware.php`, `Jwt.php`, `CookieAuth.php`, `Mailer.php`, `MediaProcessor.php`, `BackupService.php`, `cron-backup.php`, `SISTEMA_LOCAL.md`, `EMAIL_CONFIG.md`, `important.md` H01/H02/H09 resueltos.
+* Reconstrucción: `guia_reconstruccion.md Parte 1/Parte 2`.
+
+> Estado documental: refleja el código inspeccionado por lectura directa; sin ejecución del stack Docker ni pruebas propias.
