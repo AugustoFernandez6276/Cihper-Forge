@@ -5,7 +5,7 @@ import {
 } from "../../services/sesion/sesionService.js";
 import { enviarJson } from "../../services/http.js";
 
-const LOGIN_URL = new URL("../../index.html", import.meta.url).href;
+const LOGIN_URL = new URL("../pages/login.html", import.meta.url).href;
 
 export function requiereSesion(rol) {
     const usuario = obtenerUsuario();

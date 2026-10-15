@@ -39,7 +39,7 @@ document.getElementById("formVerificarEmail").addEventListener("submit", async f
         limpiarPendiente();
         mostrarMensaje("Correo verificado correctamente. Ya puedes iniciar sesión.", false);
         setTimeout(function () {
-            location.href = "../index.html" + location.search;
+            location.href = "login.html" + location.search;
         }, 1200);
     } catch (error) {
         mostrarMensaje(error.message, true);
