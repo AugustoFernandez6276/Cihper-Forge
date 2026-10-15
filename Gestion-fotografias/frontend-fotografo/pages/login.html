@@ -1,20 +1,30 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Cipher Photo para fotógrafos</title>
-        <link rel="stylesheet" href="css/base.css" />
-        <link rel="stylesheet" href="css/estilos.css" />
+        <link rel="stylesheet" href="../css/base.css" />
+        <link rel="stylesheet" href="../css/estilos.css" />
     </head>
-    <body>
-        <header>
-            <h1>Iniciar sesión</h1>
-            <p>Entra a tu espacio de trabajo como fotógrafo</p>
+    <body class="AuthPixie">
+        <header class="AuthBarra">
+            <a class="AuthMarca" href="../../lading-page/paginaprincipal.html">CipherPhotos</a>
+            <a
+                class="AuthCerrar"
+                href="../../lading-page/paginaprincipal.html"
+                aria-label="Cerrar"
+                title="Cerrar"
+            >
+                ✕
+            </a>
         </header>
 
-        <main class="container">
-            <section class="card">
+        <main class="AuthCentro">
+            <section class="AuthCaja">
+                <h1>Iniciar sesión</h1>
+                <p class="AuthSubtitulo">Entra a tu espacio de trabajo como fotógrafo</p>
+
                 <h2>Completa tus datos</h2>
                 <form id="formLogin">
                     <div class="form-group">
@@ -42,23 +52,19 @@
                         />
                     </div>
 
-                    <div class="texto-centrado margen-arriba">
+                    <div class="margen-arriba">
                         <button type="submit" class="btn btn-principal">Ingresar</button>
                     </div>
                 </form>
 
                 <p id="mensajeLogin" class="mensaje-perfil" role="status"></p>
 
-                <p class="texto-centrado margen-arriba">
+                <p class="AuthEnlace">
                     ¿Todavía no tienes cuenta?
-                    <a id="enlaceRegistro" href="pages/registro.html">Crear cuenta</a>
+                    <a id="enlaceRegistro" href="registro.html">Crear cuenta</a>
                 </p>
             </section>
         </main>
-
-        <footer>
-            <p>Políticas de Privacidad.</p>
-        </footer>
-        <script type="module" src="dom/auth/login.js"></script>
+        <script type="module" src="../dom/auth/login.js"></script>
     </body>
 </html>

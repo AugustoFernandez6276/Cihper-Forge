@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
     <head>
         <meta charset="UTF-8" />
@@ -7,14 +7,24 @@
         <link rel="stylesheet" href="../css/base.css" />
         <link rel="stylesheet" href="../css/estilos.css" />
     </head>
-    <body>
-        <header>
-            <h1>Crear Cuenta</h1>
-            <p>Regístrate como fotógrafo</p>
+    <body class="AuthPixie">
+        <header class="AuthBarra">
+            <a class="AuthMarca" href="../../lading-page/paginaprincipal.html">CipherPhotos</a>
+            <a
+                class="AuthCerrar"
+                href="../../lading-page/paginaprincipal.html"
+                aria-label="Cerrar"
+                title="Cerrar"
+            >
+                ✕
+            </a>
         </header>
 
-        <main class="container">
-            <section class="card">
+        <main class="AuthCentro">
+            <section class="AuthCaja">
+                <h1>Crear Cuenta</h1>
+                <p class="AuthSubtitulo">Regístrate como fotógrafo</p>
+
                 <h2>Completa tus datos</h2>
                 <form id="formRegistro">
                     <div class="form-group">
@@ -88,23 +98,19 @@
                         </details>
                     </div>
 
-                    <div class="texto-centrado margen-arriba">
+                    <div class="margen-arriba">
                         <button type="submit" class="btn btn-principal">Registrarse</button>
                     </div>
                 </form>
 
                 <p id="mensajeRegistro" class="mensaje-perfil" role="status"></p>
 
-                <p class="texto-centrado margen-arriba">
+                <p class="AuthEnlace">
                     ¿Ya tienes cuenta?
-                    <a id="enlaceLogin" href="../index.html">Inicia sesión aquí.</a>
+                    <a id="enlaceLogin" href="login.html">Inicia sesión aquí.</a>
                 </p>
             </section>
         </main>
-
-        <footer>
-            <p>Políticas de Privacidad.</p>
-        </footer>
         <script type="module" src="../dom/auth/registro.js"></script>
     </body>
 </html>

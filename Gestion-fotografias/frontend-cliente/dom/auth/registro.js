@@ -52,4 +52,4 @@ if (formRegistro) {
     });
 }
 
-document.getElementById("enlaceLogin").href = "../index.html" + location.search;
+document.getElementById("enlaceLogin").href = "login.html" + location.search;
