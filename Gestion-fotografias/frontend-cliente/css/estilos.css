@@ -1,4 +1,4 @@
-/* Inicio, acceso y formularios. Los estilos generales están en base.css. */
+﻿/* Inicio, acceso y formularios. Los estilos generales están en base.css. */
 
 /* Entrada principal */
 .PaginaAcceso {
@@ -380,3 +380,150 @@ th {
         columns: 3;
     }
 }
+
+/* Acceso minimalista estilo Pixieset (login y registro de ambos roles). */
+body.AuthPixie {
+    background: #ffffff;
+}
+
+body.AuthPixie .AuthBarra {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    margin: 0;
+    padding: 22px 48px;
+    min-height: 92px;
+    color: inherit;
+    background: #ffffff;
+    text-align: left;
+}
+
+.AuthMarca {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.AuthCerrar {
+    color: #9ca3af;
+    font-size: 24px;
+    line-height: 1;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.AuthCerrar:hover {
+    color: var(--primary-color);
+}
+
+.AuthCentro {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    width: min(400px, 100%);
+    margin: 0 auto;
+    padding: 56px 24px 72px;
+}
+
+.AuthCaja {
+    width: 100%;
+}
+
+.AuthCaja h1 {
+    margin: 0;
+    font-size: 26px;
+    text-align: center;
+}
+
+.AuthSubtitulo {
+    margin: 8px 0 0;
+    color: var(--gris-texto);
+    font-size: 15px;
+    text-align: center;
+}
+
+.AuthCaja h2 {
+    margin: 40px 0 22px;
+    color: var(--gris-texto);
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.AuthCaja form {
+    max-width: none;
+    margin: 0;
+}
+
+.AuthCaja .form-group {
+    margin-bottom: 18px;
+}
+
+.AuthCaja label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.AuthCaja input:not([type="checkbox"]),
+.AuthCaja select,
+.AuthCaja textarea {
+    width: 100%;
+    padding: 13px 14px;
+    border: 1px solid #d9dddc;
+    border-radius: 8px;
+    background: #ffffff;
+    font-size: 15px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.AuthCaja input:not([type="checkbox"]):focus {
+    border-color: var(--verde);
+    box-shadow: 0 0 0 3px rgba(22, 131, 95, 0.12);
+}
+
+.AuthCaja .CampoTerminos {
+    margin-top: 4px;
+    border-radius: 8px;
+}
+
+.AuthCaja .btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+.AuthCaja .btn-principal:hover {
+    background: var(--verde-oscuro);
+    filter: none;
+}
+
+.AuthCaja .mensaje-perfil {
+    margin-top: 16px;
+}
+
+.AuthEnlace {
+    margin-top: 30px;
+    color: var(--gris-texto);
+    font-size: 14px;
+    text-align: center;
+}
+
+.AuthEnlace a {
+    font-weight: 600;
+}
+
