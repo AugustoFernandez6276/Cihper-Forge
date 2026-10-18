@@ -1,5 +1,36 @@
 /* Búsqueda, invitaciones, favoritos y descargas del cliente. */
 
+/* Páginas del cliente: barra superior en lugar del sidebar lateral. */
+.Contenedor {
+    display: flex;
+    flex-direction: column;
+}
+
+.CabeceraPanel {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    flex-shrink: 0;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--borde);
+    background: var(--secondary-color);
+    position: sticky;
+    top: 0;
+    z-index: 30;
+}
+
+.CabeceraPanel .Menu {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.CabeceraPanel .BotonCerrarSesion {
+    margin-left: auto;
+}
+
 .EtiquetaSeccion {
     margin: 0 0 4px;
     color: var(--verde);
