@@ -234,6 +234,19 @@ body {
     color: var(--texto-principal);
 }
 
+/* Video demostrativo */
+.SeccionVideo {
+    padding: 40px 24px;
+    display: flex;
+    justify-content: center;
+}
+
+.SeccionVideo video {
+    width: min(960px, 100%);
+    border-radius: 16px;
+    box-shadow: var(--sombra);
+}
+
 /* Cierre (solo texto) */
 .Cierre {
     width: min(900px, calc(100% - 48px));
