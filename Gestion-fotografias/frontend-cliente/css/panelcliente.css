@@ -61,6 +61,12 @@
     box-shadow: var(--sombra);
 }
 
+/* El atributo hidden debe ganarle al display de la tarjeta para poder
+   ocultar las colecciones que no coinciden con los tags buscados. */
+#galeriaPublica .TarjetaColeccion[hidden] {
+    display: none;
+}
+
 #galeriaPublica .CubiertaTarjeta,
 #galeriaPublica .ImagenTarjeta {
     height: 260px;
