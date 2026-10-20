@@ -140,6 +140,13 @@ async function iniciar() {
 }
 
 campoTag.addEventListener("focus", abrirCajaTags);
+// Solo letras y números: sin símbolos ni espacios raros.
+campoTag.addEventListener("input", function () {
+    const limpio = campoTag.value
+        .toLowerCase()
+        .replace(/[^a-záéíóúüñ0-9]/gi, "");
+    if (limpio !== campoTag.value) campoTag.value = limpio;
+});
 campoTag.addEventListener("keydown", async function (evento) {
     if (evento.key === "Enter") {
         evento.preventDefault();
