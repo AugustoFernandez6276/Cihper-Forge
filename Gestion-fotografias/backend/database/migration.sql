@@ -45,9 +45,10 @@ PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 -- ── favoritos: CC-15 redirige favoritos de multimedia a colecciones ─────────
 -- Antes: favorito_id referencia multimedia.id_multimedia (favoritos por archivo).
 -- Ahora: favorito_id referencia colecciones.id (colección pública completa).
--- Los registros existentes apuntaban a archivos multimedia y su semántica
--- cambió, por lo tanto se descartan antes de redefinir la clave foránea.
-DELETE FROM favoritos;
+-- Los registros existentes se preservan (no se borran en cada startup).
+-- Se mantiene la tabla favoritos para que los datos persistan entre reinicios.
+-- Si se requiere una limpieza intencionada, debe hacerse mediante un script
+-- explícito y no como parte del arranque automático.
 
 SET @fk_a_colecciones = (SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE
     WHERE TABLE_SCHEMA = 'cipher_forge' AND TABLE_NAME = 'favoritos'

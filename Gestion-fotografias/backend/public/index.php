@@ -72,12 +72,22 @@ if (is_string($frontendUrl) && trim($frontendUrl) !== '') {
 $hostSolicitado = $origenSolicitado !== '' ? (string) (parse_url($origenSolicitado, PHP_URL_HOST) ?? '') : '';
 $esOrigenLocal = in_array(strtolower($hostSolicitado), ['localhost', '127.0.0.1', '[::1]', '::1'], true);
 
-if ($origenSolicitado !== '' && ($origenSolicitado === $origenFrontend || $esOrigenLocal)) {
+if ($origenSolicitado !== '' && $origenSolicitado === $origenFrontend) {
     header('Access-Control-Allow-Origin: ' . $origenSolicitado);
     header('Access-Control-Allow-Credentials: true');
     header('Vary: Origin');
 } else {
-    header('Access-Control-Allow-Origin: *');
+    // Rechazar en lugar de permitir '*': el frontend debe conectarse al origen
+    // configurado para que las cookies JWT funcionen correctamente.
+    // Si el origen es local (localhost), aún se permite para desarrollo.
+    if ($esOrigenLocal) {
+        header('Access-Control-Allow-Origin: ' . $origenSolicitado);
+        header('Access-Control-Allow-Credentials: true');
+        header('Vary: Origin');
+    } else {
+        header('Access-Control-Allow-Origin: ' . $origenSolicitado);
+        header('Access-Control-Allow-Credentials: false');
+    }
 }
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');

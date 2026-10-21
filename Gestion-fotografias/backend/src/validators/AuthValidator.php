@@ -22,8 +22,12 @@ class AuthValidator
         $errores = [];
 
         // --- Campos obligatorios ---
+        // H-03 / N3: Validar longitudes máximas según schema.sql (VARCHAR 90/60/30).
+        // Evitar truncamiento y errores de inserción por sobrelongitud.
         if (empty($data['nombre_completo'])) {
             $errores[] = 'El nombre completo es obligatorio.';
+        } elseif (strlen($data['nombre_completo']) > 90) {
+            $errores[] = 'El nombre completo no debe superar los 90 caracteres.';
         }
 
         if (empty($data['email'])) {
@@ -31,6 +35,8 @@ class AuthValidator
         } elseif (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             // filter_var con FILTER_VALIDATE_EMAIL valida formato RFC 822
             $errores[] = 'El formato del correo electrónico no es válido.';
+        } elseif (strlen($data['email']) > 60) {
+            $errores[] = 'El correo electrónico no debe superar los 60 caracteres.';
         }
 
         if (empty($data['password'])) {
@@ -44,6 +50,8 @@ class AuthValidator
         } elseif (!in_array($data['rol'], ['fotografo', 'cliente'], true)) {
             // strict comparison para evitar type coercion
             $errores[] = 'El rol debe ser "fotografo" o "cliente".';
+        } elseif (strlen($data['rol']) > 20) {
+            $errores[] = 'El rol no debe superar los 20 caracteres.';
         }
 
         // H-03: Aceptación obligatoria de Términos y Condiciones & Política de Privacidad (HU25 / Alcance 2)

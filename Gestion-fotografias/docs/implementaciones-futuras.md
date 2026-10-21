@@ -79,4 +79,30 @@ Agregar validación de magic bytes en el frontend antes de subir archivos. Como 
 
 ---
 
-*Este documento se actualizará a medida que se identifiquen nuevas observaciones pendientes.*
+*Este documento se actualizará a medida que se identifiquen nuevas observaciones pendientes.
+
+## 3. Mailpit solo para entorno de desarrollo
+
+**Fecha de identificación:** 2026-10-21
+**Referencia:** `Gestion-fotografias/docs/infraestructura.md` §5.6, §6 B6
+
+### Contexto
+
+El servicio Mailpit (`axllent/mailpit:latest`) está configurado y funciona exclusivamente en el entorno local de desarrollo (`docker-compose.yml`). Cumple el requisito RF18 de envío de códigos de verificación por correo durante el desarrollo y pruebas del proyecto UTU.
+
+### Estado actual
+
+- **Local (desarrollo):** Mailpit está activo en puertos `8025` (UI) y `1025` (SMTP). Permite capturar y revisar los correos de verificación enviados por la aplicación durante el desarrollo.
+- **Producción:** No está implementado. Para un entorno de producción se requiere contratar un servicio de correo externo (SendGrid, Mailgun, Amazon SES, etc.) o integrar una API de envío de correos. El uso continuado de Mailpit en producción no está recomendado ni soportado.
+
+### Recomendación
+
+- Mantener Mailpit como parte del stack de desarrollo local (`docker-compose.yml`).
+- Para despliegues reales, configurar credenciales y endpoints SMTP apropiados a través de variables de entorno (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`) y proveedor de servicio externo.
+- Documentar en la guía de despliegue la transición de Mailpit a un servicio de producción.
+
+### Archivos relevantes
+
+- `Gestion-fotografias/backend/docker-compose.yml` (configuración actual de Mailpit)
+- `Gestion-fotografias/docs/infraestructura.md` (notas de producción)
+- `Gestion-fotografias/backend/.env` (plantilla de variables de entorno)*
