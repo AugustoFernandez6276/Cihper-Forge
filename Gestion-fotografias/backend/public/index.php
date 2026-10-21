@@ -49,6 +49,7 @@ spl_autoload_register(function (string $class): void {
 
 use App\Core\Response;
 use App\Core\Router;
+use App\middlewares\RateLimitMiddleware;
 
 //Cabeceras CORS (para permitir peticiones desde el frontend)
 //Las cookies de sesión (JWT) requieren Allow-Credentials y un origen
@@ -103,6 +104,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $uri = $_SERVER['REQUEST_URI'] ?? '/';
 $path = parse_url($uri, PHP_URL_PATH) ?? '/';
+
+// Control de tasa (rate limiting) de los endpoints sensibles: se evalúa aquí, antes del
+// despacho del Router, para responder 429 sin tocar la base de datos ni los controladores.
+// Solo aplica a rutas listadas en RateLimitMiddleware::REGLAS (login, registro, verificación
+// y reenvío de código); el rate limiting global está diseñado en
+// Gestion-fotografias/docs/implementaciones-futuras.md (sin implementar aún).
+RateLimitMiddleware::handle($method, $path);
 
 // Despacho seguro hacia el Router
 try {

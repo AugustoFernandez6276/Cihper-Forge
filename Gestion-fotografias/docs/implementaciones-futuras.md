@@ -106,3 +106,63 @@ El servicio Mailpit (`axllent/mailpit:latest`) está configurado y funciona excl
 - `Gestion-fotografias/backend/docker-compose.yml` (configuración actual de Mailpit)
 - `Gestion-fotografias/docs/infraestructura.md` (notas de producción)
 - `Gestion-fotografias/backend/.env` (plantilla de variables de entorno)*
+
+---
+
+## 4. Rate limiting global para todas las rutas
+
+**Fecha de identificación:** 2026-10-21
+**Estado:** Parcialmente implementado (endpoints sensibles) — el alcance global queda documentado aquí como mejora futura
+**Requisitos relacionados:** RF18 (verificación de correo), seguridad de autenticación, RNF de robustez
+
+### Contexto
+
+El backend no tenía ninguna limitación de tasa de peticiones: los endpoints de autenticación podían recibir fuerza bruta sin freno y cada reenvío de código disparaba un correo real. Se implementó (2026-10-21) un rate limiter **solo para los endpoints sensibles**, dejando documentado en este apartado el diseño para extenderlo a **todas las rutas**.
+
+### Estado actual (implementado)
+
+- **Núcleo:** `backend/src/helpers/RateLimiter.php` — ventana fija, estado en archivos con `flock()` bajo `sys_get_temp_dir()/cipher_forge_rate_limit`, purga automática a las 24 h, y *fail open* si el almacenamiento no está disponible (la disponibilidad pesa más que un rechazo puntual).
+- **Reglas:** `backend/src/middlewares/RateLimitMiddleware.php`, invocado desde `backend/public/index.php` **antes** del despacho del Router (un 429 no toca BD ni controladores). Cupos actuales:
+
+| Ruta | Regla | Cupo |
+|---|---|---|
+| `POST /auth/login` | IP + email | 5 / 5 min |
+| `POST /auth/login` | IP | 20 / 5 min |
+| `POST /auth/register` | IP | 10 / 1 h |
+| `POST /auth/verificar-email` | IP + email | 6 / 10 min |
+| `POST /auth/reenviar-codigo` | IP + email | 3 / 15 min |
+| `POST /auth/reenviar-codigo` | IP | 10 / 1 h |
+
+- **Respuesta:** HTTP 429 con el JSON estándar del proyecto más `Retry-After` y cabeceras `X-RateLimit-Limit/Remaining/Reset`. Las respuestas permitidas también informan su cupo restante.
+- **Kill switch:** `RATE_LIMIT_ENABLED=0` desactiva todo el mecanismo sin redeploy (emergencias operativas o suites E2E).
+
+### Diseño propuesto para el alcance global
+
+1. **Ubicación del hook:** mantener la evaluación en `public/index.php` (antes del Router), ampliando `RateLimitMiddleware::REGLAS` con una regla *catch-all* por categoría en lugar de enumerar cada ruta. Ventaja: un 429 global sigue sin tocar la BD ni instanciar controladores.
+2. **Presupuestos por categoría (propuesta):**
+
+| Categoría | Rutas | Cupo propuesto |
+|---|---|---|
+| Lectura pública | `GET /colecciones/publicas`, `GET /fotografos`, `GET /qr/{token}/svg` | 120 / min por IP |
+| Lectura autenticada | `GET` con middleware `auth`/`optional` | 240 / min por usuario + IP |
+| Escritura autenticada | `POST/PUT/DELETE` con `auth` | 60 / min por usuario |
+| Uploads pesados | `POST /colecciones/{id}/multimedia`, `POST /colaborativo/{token}/subir` | 20 / min por usuario (además de los límites de tamaño ya existentes) |
+| Ya protegidos | `/sistema/*` (guard por IP), CLI de `cron-backup.php` | Exentos del catch-all |
+
+3. **Algoritmo:** migrar de ventana fija a **ventana deslizante** (registro de marcas de tiempo por clave) o *token bucket* para evitar el "borde de ventana" donde caben el doble de peticiones. La interfaz de `RateLimiter::registrar()` no cambia; solo su implementación interna.
+4. **Almacenamiento por escala:**
+   - **1 instancia (actual):** archivos con `flock()` — ya probado, cero dependencias.
+   - **Varias workers / más carga:** APCu (requiere compilar la extensión en el `Dockerfile`).
+   - **Varias instancias o backend horizontal:** Redis o una tabla MySQL `rate_limit_hits` (clave, ventana, conteo) con limpieza periódica desde el worker de `cron-backup.php`.
+5. **Identidad del cliente:** hoy se usa exclusivamente `REMOTE_ADDR` (igual que `SistemaController::restringirALocal`), coherente con el stack actual (Apache directo detrás del puerto de Docker). Si en producción se introduce un proxy/load balancer, confiar en `X-Forwarded-For` **solo** desde rangos de proxies de confianza, configurable por env (p. ej. `TRUSTED_PROXIES`); nunca de forma abierta, porque es falsificable.
+6. **Experiencia de cliente:** exponer `X-RateLimit-*` y `Retry-After` en `Access-Control-Expose-Headers` (línea de CORS de `public/index.php`) para que el frontend pueda mostrar "espera N segundos" en lugar de un error genérico. **Requiere aprobación del responsable del proyecto.**
+7. **Plan de rollout:** (a) reglas *catch-all* detrás de `RATE_LIMIT_GLOBAL_ENABLED=0` por defecto; (b) medir en desarrollo con las suites E2E existentes (`probe_e2e.ps1`) buscando falsos positivos; (c) activar en staging; (d) ajustar cupos con métricas reales antes de producción.
+8. **Pruebas:** el patrón ya existe en el proyecto: generar bombarderos controlados (login/registro inválido), verificar 429 + `Retry-After`, verificar aislamiento por clave (una cuenta bloqueada no afecta a otras) y verificar recuperación tras limpiar contadores.
+
+### Archivos relevantes
+
+- `Gestion-fotografias/backend/src/helpers/RateLimiter.php` (núcleo implementado)
+- `Gestion-fotografias/backend/src/middlewares/RateLimitMiddleware.php` (reglas de endpoints sensibles)
+- `Gestion-fotografias/backend/public/index.php` (hook previo al Router y cabeceras CORS)
+- `Gestion-fotografias/backend/src/middlewares/AuthMiddleware.php` (referencia de patrón de middleware)
+- `Gestion-fotografias/backend/src/controllers/SistemaController.php` (guard por IP existente, exento del catch-all)

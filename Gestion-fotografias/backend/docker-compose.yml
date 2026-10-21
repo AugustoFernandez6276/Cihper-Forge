@@ -15,7 +15,6 @@ services:
       - DB_HOST=db
       - DB_NAME=cipher_forge
       - DB_USER=cipher_user
-      - DB_PASS=cipher_password
       - DB_PORT=3306
       # El host del frontend DEBE ser "localhost" (mismo host que el backend
       # en http://localhost:8080): SameSite=Strict solo envía la cookie cuando
@@ -60,7 +59,6 @@ services:
       - DB_HOST=db
       - DB_NAME=cipher_forge
       - DB_USER=cipher_user
-      - DB_PASS=cipher_password
       - DB_PORT=3306
       - BACKUP_INTERVAL_SEG=86400
       - PURGE_INTERVAL_SEG=3600
@@ -84,10 +82,11 @@ services:
     ports:
       - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: cipher_forge
-      MYSQL_USER: cipher_user
-      MYSQL_PASSWORD: cipher_password
+      # MYSQL_ROOT_PASSWORD, MYSQL_DATABASE y MYSQL_PASSWORD se cargan
+      # desde el archivo .env (no hardcodeado en compose por seguridad)
+      - MYSQL_ROOT_PASSWORD
+      - MYSQL_DATABASE
+      - MYSQL_USER=cipher_user
     volumes:
       - db_data:/var/lib/mysql
       - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
