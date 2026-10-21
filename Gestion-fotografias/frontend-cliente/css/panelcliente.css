@@ -144,6 +144,23 @@
     padding: 10px 0 0 0;
 }
 
+/* El corazón de favoritos va junto al nombre grande de la colección. */
+.TituloColeccion {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.TituloColeccion .FavoritoColeccion {
+    position: static;
+    margin-top: 0;
+}
+
+/* Las imágenes de la colección no quedan pegadas a los tags de arriba. */
+#galeria {
+    margin-top: 24px;
+}
+
 .AccionesVisor {
     display: flex;
     justify-content: center;

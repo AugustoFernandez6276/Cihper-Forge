@@ -117,7 +117,7 @@ function mostrarInformacion(coleccion) {
         info.appendChild(etiqueta);
     }
     if (coleccion.tipo_visibilidad === "publica")
-        info.appendChild(crearBotonFavorito(coleccion.id));
+        document.querySelector(".TituloColeccion").appendChild(crearBotonFavorito(coleccion.id));
 }
 
 async function iniciar() {
