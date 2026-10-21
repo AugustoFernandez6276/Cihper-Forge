@@ -19,13 +19,16 @@ const cajaTags = document.getElementById("buscadorTags");
 const zonaBuscadorTags = document.getElementById("zonaBuscadorTags");
 let colecciones = [];
 let tagsSeleccionados = [];
+// Tarjetas ya construidas, por id de colección, para poder ocultarlas y
+// reordenarlas al filtrar sin volver a crear el DOM (las imágenes no parpadean).
+const tarjetas = new Map();
 
 function normalizarTag(tag) {
     return tag.trim().toLowerCase().replace(/^#/, "");
 }
 
 // Cuantos de los tags seleccionados tiene la colección. Sirve para ordenar
-// por relevancia; no se usa para ocultar resultados.
+// por relevancia y para decidir si la colección se muestra.
 function puntuacionTags(coleccion) {
     const tags = (coleccion.hashtags || []).map(normalizarTag);
     return tagsSeleccionados.filter(function (tag) {
@@ -44,18 +47,15 @@ function cerrarCajaTags() {
 async function mostrarColecciones() {
     liberarVistas(galeria);
     galeria.replaceChildren();
+    tarjetas.clear();
     const conArchivos = colecciones.filter(function (coleccion) {
         return (Number(coleccion.total_archivos) || 0) > 0;
     });
-    const ordenadas = conArchivos.slice().sort(function (a, b) {
-        return puntuacionTags(b) - puntuacionTags(a);
-    });
-    estadoVacio.hidden = ordenadas.length > 0;
     // Insertar todas las tarjetas de golpe: con columnas CSS, añadirlas una a
     // una (esperando cada portada) reequilibraba el mosaico y las tarjetas ya
     // colocadas cambiaban de sitio. Las portadas se cargan en paralelo al final.
     const cargasPortada = [];
-    for (const coleccion of ordenadas) {
+    for (const coleccion of conArchivos) {
         const tarjeta = crearTarjetaColeccion(coleccion);
         tarjeta.appendChild(crearBotonFavorito(coleccion.id));
         const etiquetas = document.createElement("div");
@@ -72,11 +72,35 @@ async function mostrarColecciones() {
         }
         tarjeta.appendChild(etiquetas);
         galeria.appendChild(tarjeta);
+        tarjetas.set(coleccion.id, { tarjeta: tarjeta, coleccion: coleccion });
         cargasPortada.push(
             cargarPortada(tarjeta.querySelector(".CubiertaTarjeta"), coleccion),
         );
     }
     await Promise.all(cargasPortada);
+    aplicarFiltroTags();
+}
+
+// Filtra y reordena sin recrear el DOM: las colecciones que no coinciden con
+// los tags escritos se ocultan con el atributo hidden y las que coinciden
+// quedan primero. Al borrar el último tag, todas vuelven a verse.
+function aplicarFiltroTags() {
+    const hayTags = tagsSeleccionados.length > 0;
+    const entradas = Array.from(tarjetas.values());
+    entradas.sort(function (a, b) {
+        const diferencia = puntuacionTags(b.coleccion) - puntuacionTags(a.coleccion);
+        if (diferencia !== 0) return diferencia;
+        return (a.coleccion.titulo || "").localeCompare(b.coleccion.titulo || "");
+    });
+    let visibles = 0;
+    for (const entrada of entradas) {
+        const coincide = !hayTags || puntuacionTags(entrada.coleccion) > 0;
+        entrada.tarjeta.hidden = !coincide;
+        if (coincide) visibles += 1;
+        // Mover la tarjeta ya montada la reordena sin recargar la imagen.
+        galeria.appendChild(entrada.tarjeta);
+    }
+    estadoVacio.hidden = visibles > 0;
 }
 
 function mostrarTags() {
@@ -86,12 +110,12 @@ function mostrarTags() {
         boton.type = "button";
         boton.className = "EtiquetaTag";
         boton.textContent = "#" + tag + " ×";
-        boton.addEventListener("click", async function () {
+        boton.addEventListener("click", function () {
             tagsSeleccionados = tagsSeleccionados.filter(function (actual) {
                 return actual !== tag;
             });
             mostrarTags();
-            await mostrarColecciones();
+            aplicarFiltroTags();
         });
         listaTags.appendChild(boton);
     }
@@ -103,7 +127,7 @@ async function agregarTag(valor) {
     tagsSeleccionados.push(tag);
     campoTag.value = "";
     mostrarTags();
-    await mostrarColecciones();
+    aplicarFiltroTags();
 }
 
 async function cargarSugerencias() {
@@ -140,6 +164,13 @@ async function iniciar() {
 }
 
 campoTag.addEventListener("focus", abrirCajaTags);
+// Solo letras y números: sin símbolos ni espacios raros.
+campoTag.addEventListener("input", function () {
+    const limpio = campoTag.value
+        .toLowerCase()
+        .replace(/[^a-záéíóúüñ0-9]/gi, "");
+    if (limpio !== campoTag.value) campoTag.value = limpio;
+});
 campoTag.addEventListener("keydown", async function (evento) {
     if (evento.key === "Enter") {
         evento.preventDefault();

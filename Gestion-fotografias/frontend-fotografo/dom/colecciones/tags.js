@@ -55,6 +55,13 @@ export async function configurarTags(coleccion) {
     }
 
     campo.addEventListener("focus", abrirCajaTags);
+    // Solo letras y números: sin símbolos ni espacios raros.
+    campo.addEventListener("input", function () {
+        const limpio = campo.value
+            .toLowerCase()
+            .replace(/[^a-záéíóúüñ0-9]/gi, "");
+        if (limpio !== campo.value) campo.value = limpio;
+    });
     campo.addEventListener("keydown", async function (evento) {
         if (evento.key !== "Enter") return;
         evento.preventDefault();
