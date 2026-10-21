@@ -212,10 +212,10 @@ class UserRepository
     public function listarFotografos(): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT u.id, u.nombre_completo, u.email, u.telefono,
+            'SELECT u.id, u.nombre_completo,
                     (SELECT COUNT(*) FROM colecciones c WHERE c.fotografo_id = u.id AND c.tipo_visibilidad = "publica") AS colecciones_publicas
              FROM usuarios u
-             INNER JOIN fotografos f ON f.id_fotografo = u.id
+             INNER JOIN Fotografos f ON f.id_fotografo = u.id
              WHERE u.rol = "fotografo"
              ORDER BY u.nombre_completo ASC'
         );
@@ -230,9 +230,9 @@ class UserRepository
     public function obtenerPerfilFotografo(int $id): ?Fotografo
     {
         $stmt = $this->pdo->prepare(
-            'SELECT u.id, u.nombre_completo, u.email, u.telefono
+            'SELECT u.id, u.nombre_completo
              FROM usuarios u
-             INNER JOIN fotografos f ON f.id_fotografo = u.id
+             INNER JOIN Fotografos f ON f.id_fotografo = u.id
              WHERE u.id = :id AND u.rol = "fotografo"
              LIMIT 1'
         );

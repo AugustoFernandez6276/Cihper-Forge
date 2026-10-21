@@ -2,5 +2,5 @@ projectKey=cipher-forge
 serverUrl=http://localhost:9000
 serverVersion=26.8.0.126808
 dashboardUrl=http://localhost:9000/dashboard?id=cipher-forge
-ceTaskId=dc70fb74-e884-4394-87f8-6d9855723ddf
-ceTaskUrl=http://localhost:9000/api/ce/task?id=dc70fb74-e884-4394-87f8-6d9855723ddf
+ceTaskId=29f61e93-fd37-4e6b-b71a-443ef2399b06
+ceTaskUrl=http://localhost:9000/api/ce/task?id=29f61e93-fd37-4e6b-b71a-443ef2399b06

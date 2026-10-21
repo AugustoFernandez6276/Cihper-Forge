@@ -129,7 +129,6 @@ erDiagram
     COLECCIONES ||--o{ COLECCION_HASHTAGS : "clasificada en"
     COLECCIONES ||--o{ ACCESO_COLECCIONES : "asigna permisos a"
     HASHTAGS ||--o{ COLECCION_HASHTAGS : "asocia temas a"
-    COLECCIONES ||--o{ FAVORITOS : "es marcada como favorita"
     USUARIOS {
         int id PK "Identificador unico autoincremental"
         string nombre_completo "Nombre del usuario (max 90 car)"
@@ -139,7 +138,7 @@ erDiagram
         string codigo_verificacion "Codigo numerico temporal de validacion"
         datetime codigo_expiracion "Fecha y hora limite del codigo"
         string password_hash "Contrasena hasheada con bcrypt"
-        enum rol "Rol asignado: fotografo o cliente"
+        enum rol "Rol asignado: fotografo o cliente. Patrón Single Table Inheritance: la columna rol en usuarios distingue fotógrafos y clientes; tablas clientes y fotógrafos son especializaciones con FK a usuarios.id"
     }
     CLIENTES {
         int id_cliente PK,FK "Referencia a usuarios.id (ON DELETE CASCADE)"
@@ -150,7 +149,7 @@ erDiagram
     }
     COLECCIONES {
         int id PK "Identificador unico autoincremental"
-        int fotografo_id FK "Dueno de la coleccion (usuarios.id)"
+        int fotografo_id FK NOT NULL "Dueno de la coleccion (usuarios.id)"
         enum tipo_visibilidad DEFAULT privada "Visibilidad: privada o publica"
         string titulo "Titulo de la coleccion (max 60 car)"
         string descripcion "Descripcion del evento (max 90 car)"
