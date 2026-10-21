@@ -56,7 +56,9 @@ async function mostrarColecciones() {
     // colocadas cambiaban de sitio. Las portadas se cargan en paralelo al final.
     const cargasPortada = [];
     for (const coleccion of conArchivos) {
-        const tarjeta = crearTarjetaColeccion(coleccion);
+        // En el mosaico público solo se ve el nombre de la colección y sus
+        // tags: el nombre del fotógrafo no se muestra.
+        const tarjeta = crearTarjetaColeccion(coleccion, { mostrarFotografo: false });
         tarjeta.appendChild(crearBotonFavorito(coleccion.id));
         const etiquetas = document.createElement("div");
         etiquetas.className = "ListaTagsColeccion";

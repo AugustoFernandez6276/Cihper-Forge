@@ -1,4 +1,5 @@
-export function crearTarjetaColeccion(coleccion) {
+export function crearTarjetaColeccion(coleccion, opciones) {
+    const mostrarFotografo = !opciones || opciones.mostrarFotografo !== false;
     const tarjeta = document.createElement("article");
     tarjeta.className = "TarjetaColeccion";
     const enlace = document.createElement("a");
@@ -13,10 +14,12 @@ export function crearTarjetaColeccion(coleccion) {
     nombre.className = "NombreColeccion";
     nombre.textContent = coleccion.titulo;
     enlace.appendChild(nombre);
-    const fotografo = document.createElement("p");
-    fotografo.className = "DatosColeccion";
-    fotografo.textContent = coleccion.fotografo_nombre || "";
-    enlace.appendChild(fotografo);
+    if (mostrarFotografo) {
+        const fotografo = document.createElement("p");
+        fotografo.className = "DatosColeccion";
+        fotografo.textContent = coleccion.fotografo_nombre || "";
+        enlace.appendChild(fotografo);
+    }
     tarjeta.appendChild(enlace);
     return tarjeta;
 }
