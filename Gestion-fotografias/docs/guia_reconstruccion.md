@@ -172,8 +172,6 @@ docker compose up --build -d
 > **Advertencias locales verificadas (no aptas para producción):**
 > * `backend/.env` existe pero el código no lo carga (solo `getenv()`; sin dotenv). La configuración efectiva es `environment:` de compose. `backend/.env.example` además está incompleto (omite `SMTP_*` y `APP_ENV/APP_DEBUG`) y en todo caso es inerte sin dotenv.
 > * Credenciales de desarrollo versionadas en compose (ver `docker-compose.yml:15-19,87-90`), no usar en producción.
-> * `backend/database/migration.sql:50` contiene `DELETE FROM favoritos;` y se ejecuta en **cada arranque**. Cada reinicio vacía `favoritos`. BLOQUEANTE conocido para producción (ver `infraestructura.md §4.1` y `§6`).
-> * `backend/database/migration.sql:50` contiene `DELETE FROM favoritos;` y se ejecuta en **cada arranque**. Cada reinicio vacía `favoritos`. BLOQUEANTE conocido para producción (ver `infraestructura.md §4.1` y `§6`).
 > * Tres volcados `backend/backups/backup_cipher_forge_*.sql` están versionados en git pese a `backend/.gitignore:11` (`/backups/`). No subir respaldos con datos al repo.
 
 ---
@@ -208,7 +206,7 @@ Sin comandos inventados. Procedimiento ejecutable `PENDIENTE DE DEFINICIÓN` has
 
 1. Sin bind mount `.:/var/www/html` en producción; imagen inmutable construida desde `Dockerfile`.
 2. `restart` y healthcheck definidos para `app` (hoy `app` sin `restart`; `worker: unless-stopped`, `mailpit/db: always`). `/api/ping` hoy no chequea BD.
-3. Migración versionada con bloqueo o job único; eliminar `DELETE FROM favoritos` antes de desplegar.
+3. Migración versionada con bloqueo o job único.
 4. `AllowOverride` debe permitir `.htaccess` de `uploads/` y `backups/` (`Require all denied`), o migrar la denegación a configuración del servidor.
 5. `JWT_SECRET` compartido si hay réplicas; volumen `uploads_data` compartido o almacenamiento `PENDIENTE DE DEFINICIÓN`.
 
