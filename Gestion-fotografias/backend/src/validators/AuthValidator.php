@@ -45,6 +45,12 @@ class AuthValidator
             $errores[] = 'La contraseña debe tener al menos 8 caracteres.';
         }
 
+        if (empty($data['telefono'])) {
+            $errores[] = 'El teléfono es obligatorio.';
+        } elseif (!ctype_digit((string) $data['telefono'])) {
+            $errores[] = 'El teléfono debe contener solo números.';
+        }
+
         if (empty($data['rol'])) {
             $errores[] = 'El rol es obligatorio.';
         } elseif (!in_array($data['rol'], ['fotografo', 'cliente'], true)) {
