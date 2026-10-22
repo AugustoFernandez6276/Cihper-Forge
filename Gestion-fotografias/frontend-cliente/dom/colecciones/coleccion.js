@@ -26,7 +26,7 @@ function crearDescargas(archivo) {
         const boton = document.createElement("button");
         boton.type = "button";
         boton.className = "BotonDescargar";
-        boton.textContent = calidad === "alta" ? "Original" : "Estándar";
+        boton.textContent = calidad === "alta" ? "Alta" : "Buena";
         boton.addEventListener("click", async function () {
             boton.disabled = true;
             try {
