@@ -4,11 +4,24 @@ import { guardarUsuario } from "../../services/sesion/sesionService.js";
 
 const usuarioGuardado = requiereSesion("fotografo");
 const mensaje = document.getElementById("mensajePerfil");
+const campoNombre = document.getElementById("nombreCompleto");
+const campoTelefono = document.getElementById("telefono");
 
 function mostrarDatos() {
-    document.getElementById("nombreCompleto").value = usuarioGuardado.nombre_completo || "";
-    document.getElementById("telefono").value = usuarioGuardado.telefono || "";
+    campoNombre.value = (usuarioGuardado.nombre_completo || "").replace(
+        /[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]/g,
+        ""
+    );
+    campoTelefono.value = (usuarioGuardado.telefono || "").replace(/[^0-9]/g, "");
 }
+
+campoNombre.addEventListener("input", function () {
+    campoNombre.value = campoNombre.value.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]/g, "");
+});
+
+campoTelefono.addEventListener("input", function () {
+    campoTelefono.value = campoTelefono.value.replace(/[^0-9]/g, "");
+});
 
 function mostrarMensaje(texto, esError = false) {
     mensaje.textContent = texto;

@@ -26,6 +26,9 @@
                                 type="text"
                                 id="nombreCompleto"
                                 name="nombre_completo"
+                                pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]+"
+                                title="Solo se permiten letras y espacios"
+                                autocomplete="name"
                                 required
                             />
                         </div>
@@ -37,7 +40,15 @@
                     <div class="campo-coleccion campo-con-boton">
                         <div>
                             <label for="telefono">Número de teléfono</label>
-                            <input type="tel" id="telefono" name="telefono" />
+                            <input
+                                type="tel"
+                                id="telefono"
+                                name="telefono"
+                                inputmode="numeric"
+                                pattern="[0-9]+"
+                                title="Solo se permiten números"
+                                autocomplete="tel"
+                            />
                         </div>
                         <button class="btn btn-principal boton-save" type="submit">Guardar</button>
                     </div>
