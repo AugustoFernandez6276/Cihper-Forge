@@ -4,41 +4,15 @@ import { cerrarSesion } from "../comun/sesion.js";
 function renderPerfil() {
     const usuario = obtenerUsuario() || {};
     const nombre = usuario.nombre_completo || "Fotógrafo";
-    const email = usuario.email || "Sin correo";
     const inicial = nombre.charAt(0).toUpperCase();
 
-    document.querySelectorAll(".CuentaPerfil").forEach(function (cuenta) {
-        const nombreMenu = cuenta.querySelector(".NombreCuenta");
-        const emailMenu = cuenta.querySelector(".EmailCuenta");
-        const avatar = cuenta.querySelectorAll(".AvatarPerfil");
-
-        nombreMenu.textContent = nombre;
-        emailMenu.textContent = email;
-        avatar.forEach(function (elemento) {
-            elemento.textContent = inicial;
-        });
+    document.querySelectorAll(".AvatarPerfil").forEach(function (elemento) {
+        elemento.textContent = inicial;
     });
 }
 
-document.querySelectorAll(".CuentaPerfil").forEach(function (cuenta) {
-    const boton = cuenta.querySelector(".BotonCuenta");
-    const menu = cuenta.querySelector(".MenuCuenta");
-
-    boton.addEventListener("click", function (evento) {
-        evento.stopPropagation();
-        const abierto = menu.hidden;
-        menu.hidden = !abierto;
-        boton.setAttribute("aria-expanded", String(abierto));
-    });
-
-    cuenta.querySelector(".CerrarSesion").addEventListener("click", function () {
-        cerrarSesion();
-    });
-
-    document.addEventListener("click", function () {
-        menu.hidden = true;
-        boton.setAttribute("aria-expanded", "false");
-    });
+document.querySelectorAll(".CerrarSesion").forEach(function (boton) {
+    boton.addEventListener("click", cerrarSesion);
 });
 
 renderPerfil();
