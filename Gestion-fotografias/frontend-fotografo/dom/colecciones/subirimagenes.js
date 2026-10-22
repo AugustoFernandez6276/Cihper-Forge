@@ -113,7 +113,10 @@ async function guardarCampoEditable(campo, clave, texto, textoAnterior) {
         if (esTitulo) tituloColeccion = texto;
         else descripcionColeccion = texto;
         escribirTextoCampo(campo, texto);
-        alert(esTitulo ? "El título se actualizó correctamente." : "La descripción se actualizó correctamente.");
+        mostrarToast(
+            esTitulo ? "El título se actualizó correctamente." : "La descripción se actualizó correctamente.",
+            "Exito",
+        );
     } catch (error) {
         escribirTextoCampo(campo, textoAnterior);
         alert(error.message);
