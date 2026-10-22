@@ -1,14 +1,12 @@
 import {
     detalleColeccion,
     actualizarColeccion,
-    eliminarColeccion,
 } from "../../services/colecciones/coleccionesService.js";
 import {
     listarMultimedia,
     subirMultimedia,
     eliminarMultimedia,
 } from "../../services/multimedia/multimediaService.js";
-import { enviarBorradoKeepalive } from "../../services/http.js";
 import { requiereSesion } from "../comun/sesion.js";
 import { cargarVista, liberarVistas } from "../multimedia/multimedia.js";
 import { actualizarAlmacenamiento, formatearAlmacenamiento } from "../comun/almacenamiento.js";
@@ -43,20 +41,22 @@ let tituloColeccion = "";
 let descripcionColeccion = "";
 let guardandoCampo = false;
 let guardadoPorEnter = false;
-// Borrado automático de la colección recién creada (nueva=1) que el fotógrafo
-// abandona sin subir nada. Solo se arma tras cargar bien la colección vacía;
-// cualquier acción real (subir, publicar, generar QR) lo desarma.
-let coleccionVacia = false;
-let subioArchivos = false;
 
-function eliminarColeccionVacia(evento) {
-    // persisted = la página queda en caché y puede volver (botón "atrás"):
-    // en ese caso no se borra nada.
-    if (evento && evento.persisted) return;
-    if (!coleccionVacia || subioArchivos) return;
-    coleccionVacia = false;
-    // keepalive: la petición sobrevive al cierre/navegación de la pestaña.
-    enviarBorradoKeepalive("/colecciones/" + coleccionId, "DELETE");
+function mostrarToast(texto, tipo) {
+    const contenedor = document.getElementById("toasts");
+    if (!contenedor) return;
+    const toast = document.createElement("div");
+    toast.className = "Toast " + (tipo || "Exito");
+    toast.textContent = texto;
+    contenedor.appendChild(toast);
+    setTimeout(function () {
+        toast.classList.add("Saliendo");
+        const quitar = function () {
+            toast.remove();
+        };
+        toast.addEventListener("animationend", quitar, { once: true });
+        setTimeout(quitar, 400);
+    }, 3000);
 }
 
 function indicarTrabajo(enCurso) {
@@ -72,8 +72,10 @@ function indicarTrabajo(enCurso) {
 }
 
 function mostrarVisibilidad(tipo) {
-    document.getElementById("estadoVisibilidad").textContent =
-        tipo === "publica" ? "Visible en colecciones públicas" : "Colección privada";
+    mostrarToast(
+        tipo === "publica" ? "Visible en colecciones públicas" : "Colección privada",
+        "Exito",
+    );
 }
 
 // Texto visible del campo editable, en una sola línea (Enter guarda, no salta).
@@ -111,7 +113,6 @@ async function guardarCampoEditable(campo, clave, texto, textoAnterior) {
         if (esTitulo) tituloColeccion = texto;
         else descripcionColeccion = texto;
         escribirTextoCampo(campo, texto);
-        coleccionVacia = false;
         alert(esTitulo ? "El título se actualizó correctamente." : "La descripción se actualizó correctamente.");
     } catch (error) {
         escribirTextoCampo(campo, textoAnterior);
@@ -265,7 +266,6 @@ async function subirArchivos() {
             const resultado = await subirMultimedia(coleccionId, [archivo], {
                 titulo: archivo.name.slice(0, 60),
             });
-            subioArchivos = true;
             if (resultado.excedentes && resultado.excedentes.length > 0) {
                 errores.push(archivo.name + ": no queda espacio disponible.");
             } else if (espacioDisponible !== Infinity) {
@@ -291,7 +291,7 @@ async function eliminarSeleccionados() {
     if (ocupado || !seleccionados.length) return;
     const vaciaraColeccion = seleccionados.length === archivos.length;
     const aviso = vaciaraColeccion
-        ? "¿Eliminar todos los archivos? La colección quedará vacía y será eliminada."
+        ? "¿Eliminar todos los archivos? La colección quedará vacía."
         : "¿Eliminar los archivos seleccionados?";
     if (!confirm(aviso)) return;
     indicarTrabajo(true);
@@ -312,32 +312,22 @@ async function eliminarSeleccionados() {
         indicarTrabajo(false);
     }
     if (errores.length) alert(errores.join("\n"));
-    // Si la colección quedó sin archivos, se elimina por completo: igual que
-    // para los clientes, una colección vacía no debe quedar en el panel.
-    if (archivos.length === 0) {
-        coleccionVacia = false;
-        try {
-            await eliminarColeccion(coleccionId);
-        } catch (error) {
-            alert(error.message);
-            return;
-        }
-        location.href = "panel.html";
-    }
 }
 
 async function publicarColeccion(tipo) {
     if (ocupado) return;
+    menuVisibilidad.hidden = true;
+    botonPublicar.setAttribute("aria-expanded", "false");
+    if (tipo === "publica" && archivos.length === 0) {
+        mostrarToast("Sube al menos una imagen o video para poder hacerla pública.", "Error");
+        return;
+    }
     indicarTrabajo(true);
     try {
         await actualizarColeccion(coleccionId, { tipo_visibilidad: tipo });
         mostrarVisibilidad(tipo);
-        menuVisibilidad.hidden = true;
-        botonPublicar.setAttribute("aria-expanded", "false");
-        // El fotógrafo actuó sobre la colección: ya no es un abandono.
-        coleccionVacia = false;
     } catch (error) {
-        alert(error.message);
+        mostrarToast(error.message, "Error");
     } finally {
         indicarTrabajo(false);
     }
@@ -366,21 +356,16 @@ async function iniciar() {
         mensaje.textContent = "La colección no es válida. Vuelve al panel.";
         return;
     }
-    const parametros = new URLSearchParams(location.search);
-    const esNueva = parametros.get("nueva") === "1";
     try {
         const coleccion = await detalleColeccion(coleccionId);
         tituloColeccion = coleccion.titulo || "";
         descripcionColeccion = coleccion.descripcion || "";
         escribirTextoCampo(campoTitulo, tituloColeccion);
         escribirTextoCampo(campoDescripcion, descripcionColeccion);
-        mostrarVisibilidad(coleccion.tipo_visibilidad);
         configurarQr(coleccionId);
         await configurarTags(coleccion);
         await cargarArchivos();
         await actualizarAlmacenamiento();
-        // Colección recién creada y aún vacía: se lista para borrar si se abandona.
-        coleccionVacia = esNueva && archivos.length === 0;
         indicarTrabajo(false);
     } catch (error) {
         mensaje.hidden = false;
@@ -420,30 +405,4 @@ visor.addEventListener("click", function (evento) {
 document.addEventListener("keydown", function (evento) {
     if (evento.key === "Escape") cerrarVisor();
 });
-// Generar un QR implica planes para la colección: no es un abandono.
-for (const idQr of ["botonQrColaborativo", "botonQrAcceso"]) {
-    document.getElementById(idQr).addEventListener("click", function () {
-        coleccionVacia = false;
-    });
-}
-// Añadir un tag también es una acción deliberada sobre la colección.
-document.getElementById("tagInput").addEventListener("keydown", function (evento) {
-    if (evento.key === "Enter") coleccionVacia = false;
-});
-// Salir por el enlace del panel: se borra aquí (página aún viva) y luego se navega.
-document.querySelector(".EnlaceVolver").addEventListener("click", async function (evento) {
-    if (!coleccionVacia || subioArchivos) return;
-    evento.preventDefault();
-    // currentTarget se anula tras un await: se guarda el destino antes.
-    const destino = evento.currentTarget.href;
-    coleccionVacia = false;
-    try {
-        await eliminarColeccion(coleccionId);
-    } catch (error) {
-        // Si el borrado falla, la colección queda en el panel para gestionarla a mano.
-    }
-    location.href = destino;
-});
-// Cerrar pestaña o navegar fuera: keepalive para que el DELETE complete igual.
-window.addEventListener("pagehide", eliminarColeccionVacia);
 await iniciar();
