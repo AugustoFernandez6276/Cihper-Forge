@@ -88,6 +88,21 @@
     font-size: 17px;
 }
 
+/* Con tags activos el mosaico fluye en filas, de izquierda a derecha, en vez
+   de apilar las coincidencias hacia abajo como hacen las columnas CSS. */
+#galeriaPublica.GaleriaColecciones.Filtrando {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 18px;
+    align-items: start;
+    align-content: start;
+}
+
+#galeriaPublica.Filtrando .TarjetaColeccion {
+    display: block;
+    margin: 0;
+}
+
 .SubtituloPagina {
     color: var(--primary-color);
     margin: 30px 0 5px 0;

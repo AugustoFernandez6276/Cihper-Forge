@@ -27,13 +27,14 @@ function normalizarTag(tag) {
     return tag.trim().toLowerCase().replace(/^#/, "");
 }
 
-// Cuantos de los tags seleccionados tiene la colección. Sirve para ordenar
-// por relevancia y para decidir si la colección se muestra.
-function puntuacionTags(coleccion) {
+// Posición del primer tag seleccionado que tiene la colección: las del primer
+// tag van primero, después las del segundo, etc. Infinity si no coincide.
+function prioridadTags(coleccion) {
     const tags = (coleccion.hashtags || []).map(normalizarTag);
-    return tagsSeleccionados.filter(function (tag) {
-        return tags.includes(tag);
-    }).length;
+    for (let i = 0; i < tagsSeleccionados.length; i += 1) {
+        if (tags.includes(tagsSeleccionados[i])) return i;
+    }
+    return Infinity;
 }
 
 function abrirCajaTags() {
@@ -88,19 +89,23 @@ async function mostrarColecciones() {
 // quedan primero. Al borrar el último tag, todas vuelven a verse.
 function aplicarFiltroTags() {
     const hayTags = tagsSeleccionados.length > 0;
+    // Con tags el mosaico fluye en filas (izquierda a derecha); sin tags
+    // recupera el mosaico de columnas original.
+    galeria.classList.toggle("Filtrando", hayTags);
     const entradas = Array.from(tarjetas.values());
     // Sin tags se conserva el orden original del mosaico; reordenar por título
     // hacía que las tarjetas cambiaran de sitio al terminar de cargar.
     if (hayTags) {
         entradas.sort(function (a, b) {
-            const diferencia = puntuacionTags(b.coleccion) - puntuacionTags(a.coleccion);
-            if (diferencia !== 0) return diferencia;
-            return (a.coleccion.titulo || "").localeCompare(b.coleccion.titulo || "");
+            const pa = prioridadTags(a.coleccion);
+            const pb = prioridadTags(b.coleccion);
+            if (pa === pb) return 0;
+            return pa - pb;
         });
     }
     let visibles = 0;
     for (const entrada of entradas) {
-        const coincide = !hayTags || puntuacionTags(entrada.coleccion) > 0;
+        const coincide = !hayTags || prioridadTags(entrada.coleccion) !== Infinity;
         entrada.tarjeta.hidden = !coincide;
         if (coincide) visibles += 1;
         // Mover la tarjeta ya montada la reordena sin recargar la imagen.
