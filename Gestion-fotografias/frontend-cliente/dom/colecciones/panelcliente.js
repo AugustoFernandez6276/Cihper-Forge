@@ -89,11 +89,15 @@ async function mostrarColecciones() {
 function aplicarFiltroTags() {
     const hayTags = tagsSeleccionados.length > 0;
     const entradas = Array.from(tarjetas.values());
-    entradas.sort(function (a, b) {
-        const diferencia = puntuacionTags(b.coleccion) - puntuacionTags(a.coleccion);
-        if (diferencia !== 0) return diferencia;
-        return (a.coleccion.titulo || "").localeCompare(b.coleccion.titulo || "");
-    });
+    // Sin tags se conserva el orden original del mosaico; reordenar por título
+    // hacía que las tarjetas cambiaran de sitio al terminar de cargar.
+    if (hayTags) {
+        entradas.sort(function (a, b) {
+            const diferencia = puntuacionTags(b.coleccion) - puntuacionTags(a.coleccion);
+            if (diferencia !== 0) return diferencia;
+            return (a.coleccion.titulo || "").localeCompare(b.coleccion.titulo || "");
+        });
+    }
     let visibles = 0;
     for (const entrada of entradas) {
         const coincide = !hayTags || puntuacionTags(entrada.coleccion) > 0;
