@@ -169,6 +169,71 @@
 
 .AccionesVisor .ZonaDescarga {
     width: auto;
+    padding: 0;
+    gap: 12px;
+}
+
+/* Visor: cuadro blanco en el centro con la imagen grande y los botones de
+   descarga debajo. Detrás queda el fondo oscurecido, sin imagen grande. */
+.Visor {
+    background: rgb(15 23 42 / 88%);
+}
+
+.VisorInterior {
+    width: min(100%, 720px);
+    padding: 18px;
+    border-radius: 16px;
+    background: var(--secondary-color);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
+.VisorInterior img,
+.VisorInterior video {
+    max-width: 100%;
+    max-height: 58vh;
+    border-radius: 10px;
+}
+
+.BotonCerrarVisor {
+    right: 10px;
+    top: 10px;
+    z-index: 2;
+    background: rgb(15 23 42 / 70%);
+    color: var(--secondary-color);
+    cursor: pointer;
+}
+
+/* Icono de descarga en la esquina de cada imagen de la colección. */
+.BotonDescargaIcono {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(15 23 42 / 65%);
+    color: var(--secondary-color);
+    cursor: pointer;
+}
+
+.BotonDescargaIcono:hover {
+    background: var(--verde);
+}
+
+.BotonDescargaIcono svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
 }
 
 .FlechaVisor {

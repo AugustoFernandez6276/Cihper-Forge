@@ -22,30 +22,46 @@ let posicionVisor = 0;
 function crearDescargas(archivo) {
     const zona = document.createElement("div");
     zona.className = "ZonaDescarga";
-    const selector = document.createElement("select");
-    selector.setAttribute("aria-label", "Calidad de descarga");
     for (const calidad of ["buena", "alta"]) {
-        const opcion = document.createElement("option");
-        opcion.value = calidad;
-        opcion.textContent = calidad === "alta" ? "Original" : "Estándar";
-        selector.appendChild(opcion);
+        const boton = document.createElement("button");
+        boton.type = "button";
+        boton.className = "BotonDescargar";
+        boton.textContent = calidad === "alta" ? "Original" : "Estándar";
+        boton.addEventListener("click", async function () {
+            boton.disabled = true;
+            try {
+                await descargarMultimedia(archivo.id_multimedia, calidad);
+            } catch (error) {
+                mostrarToast(error.message, "Error");
+            } finally {
+                boton.disabled = false;
+            }
+        });
+        zona.appendChild(boton);
     }
+    return zona;
+}
+
+// Icono de descarga en la esquina de la imagen: abre el mismo cuadro blanco
+// con la imagen grande y los botones de calidad.
+function crearBotonDescargaIcono(archivo, indice) {
     const boton = document.createElement("button");
     boton.type = "button";
-    boton.className = "BotonDescargar";
-    boton.textContent = "Descargar";
-    boton.addEventListener("click", async function () {
-        boton.disabled = true;
-        try {
-            await descargarMultimedia(archivo.id_multimedia, selector.value);
-        } catch (error) {
-            mostrarToast(error.message, "Error");
-        } finally {
-            boton.disabled = false;
-        }
+    boton.className = "BotonDescargaIcono";
+    boton.title = "Descargar";
+    boton.setAttribute("aria-label", "Descargar " + (archivo.titulo || "archivo"));
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    const flecha = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    flecha.setAttribute("d", "M12 3v11m0 0 4-4m-4 4-4-4M4 19h16");
+    svg.appendChild(flecha);
+    boton.appendChild(svg);
+    boton.addEventListener("click", async function (evento) {
+        evento.stopPropagation();
+        await abrirVisor(indice);
     });
-    zona.append(selector, boton);
-    return zona;
+    return boton;
 }
 
 function cerrarVisor() {
@@ -85,13 +101,13 @@ function crearTarjeta(archivo, indice) {
         if (evento.key === "Enter") await abrirVisor(indice);
     });
     tarjeta.appendChild(vista);
+    tarjeta.appendChild(crearBotonDescargaIcono(archivo, indice));
     if (archivo.descripcion) {
         const descripcion = document.createElement("p");
         descripcion.className = "DescripcionImagen";
         descripcion.textContent = archivo.descripcion;
         tarjeta.appendChild(descripcion);
     }
-    tarjeta.appendChild(crearDescargas(archivo));
     galeria.appendChild(tarjeta);
     return vista;
 }
