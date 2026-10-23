@@ -331,12 +331,36 @@ a {
     color: var(--secondary-color);
     border-radius: 8px;
     background: var(--primary-color);
+    animation: toastAparicion 0.3s ease;
 }
 .Toast.Exito {
     background: var(--verde);
 }
 .Toast.Error {
     background: var(--error);
+}
+.Toast.Saliendo {
+    animation: toastSalida 0.3s ease forwards;
+}
+@keyframes toastAparicion {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+@keyframes toastSalida {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(18px);
+    }
 }
 
 /* 6. Pantallas pequeñas */

@@ -3,7 +3,6 @@ import { actualizarPerfil } from "../../services/fotografo/fotografoService.js";
 import { guardarUsuario } from "../../services/sesion/sesionService.js";
 
 const usuarioGuardado = requiereSesion("fotografo");
-const mensaje = document.getElementById("mensajePerfil");
 const campoNombre = document.getElementById("nombreCompleto");
 const campoTelefono = document.getElementById("telefono");
 
@@ -23,9 +22,21 @@ campoTelefono.addEventListener("input", function () {
     campoTelefono.value = campoTelefono.value.replace(/[^0-9]/g, "");
 });
 
-function mostrarMensaje(texto, esError = false) {
-    mensaje.textContent = texto;
-    mensaje.className = esError ? "mensaje-perfil error" : "mensaje-perfil";
+function mostrarToast(texto, tipo) {
+    const contenedor = document.getElementById("toasts");
+    if (!contenedor) return;
+    const toast = document.createElement("div");
+    toast.className = "Toast " + (tipo || "Exito");
+    toast.textContent = texto;
+    contenedor.appendChild(toast);
+    setTimeout(function () {
+        toast.classList.add("Saliendo");
+        const quitar = function () {
+            toast.remove();
+        };
+        toast.addEventListener("animationend", quitar, { once: true });
+        setTimeout(quitar, 400);
+    }, 3000);
 }
 
 async function guardarCambios(datos) {
@@ -38,21 +49,26 @@ async function guardarCambios(datos) {
     }
     guardarUsuario(usuarioGuardado);
     mostrarDatos();
-    mostrarMensaje("Dato guardado correctamente.");
 }
 
 async function enviarFormulario(evento, datos) {
     evento.preventDefault();
     const boton = evento.currentTarget.querySelector("button");
+    if (!boton) return;
     boton.disabled = true;
-    mostrarMensaje("Guardando...");
+    const vigilante = setTimeout(function () {
+        boton.disabled = false;
+        mostrarToast("El servidor tardó demasiado. Intenta de nuevo.", "Error");
+    }, 15000);
 
     try {
         await guardarCambios(datos);
+        mostrarToast("Dato guardado correctamente.", "Exito");
     } catch (error) {
-        mostrarMensaje(error.message, true);
+        mostrarToast(error.message, "Error");
         if (error.status === 401) location.href = "login.html";
     } finally {
+        clearTimeout(vigilante);
         boton.disabled = false;
     }
 }
