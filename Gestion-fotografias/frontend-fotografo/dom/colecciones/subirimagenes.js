@@ -20,6 +20,7 @@ const galeria = document.getElementById("galeria");
 const mensaje = document.getElementById("estadoVacio");
 const selectorArchivos = document.getElementById("selectorArchivos");
 const zonaCarga = document.getElementById("zonaCarga");
+const botonAgregar = document.getElementById("agregarArchivos");
 const barraAcciones = document.getElementById("barraAcciones");
 const botonPublicar = document.getElementById("botonPublicar");
 const menuVisibilidad = document.getElementById("menuVisibilidad");
@@ -27,6 +28,10 @@ const botonEliminar = document.getElementById("eliminarSeleccionados");
 const botonSeleccionar = document.getElementById("seleccionarTodas");
 const visor = document.getElementById("visor");
 const contenidoVisor = document.getElementById("visorContenido");
+const modalConfirmacion = document.getElementById("modalConfirmacion");
+const textoConfirmacion = document.getElementById("textoConfirmacion");
+const botonAceptarConfirmacion = document.getElementById("confirmacionAceptar");
+const botonCancelarConfirmacion = document.getElementById("confirmacionCancelar");
 const campoTitulo = document.getElementById("nombreColeccion");
 const campoDescripcion = document.getElementById("descripcionColeccionTexto");
 const LIMITE_IMAGEN_BYTES = 30 * 1024 * 1024;
@@ -41,6 +46,8 @@ let tituloColeccion = "";
 let descripcionColeccion = "";
 let guardandoCampo = false;
 let guardadoPorEnter = false;
+let resolverConfirmacion = null;
+let focoAntesDeConfirmar = null;
 
 function mostrarToast(texto, tipo) {
     const contenedor = document.getElementById("toasts");
@@ -59,10 +66,33 @@ function mostrarToast(texto, tipo) {
     }, 3000);
 }
 
+function pedirConfirmacion(texto) {
+    return new Promise(function (resolve) {
+        textoConfirmacion.textContent = texto;
+        focoAntesDeConfirmar = document.activeElement;
+        resolverConfirmacion = resolve;
+        modalConfirmacion.hidden = false;
+        botonCancelarConfirmacion.focus();
+    });
+}
+
+function cerrarConfirmacion(resultado) {
+    if (modalConfirmacion.hidden) return;
+    modalConfirmacion.hidden = true;
+    const resolver = resolverConfirmacion;
+    resolverConfirmacion = null;
+    if (focoAntesDeConfirmar && typeof focoAntesDeConfirmar.focus === "function") {
+        focoAntesDeConfirmar.focus();
+    }
+    focoAntesDeConfirmar = null;
+    if (resolver) resolver(resultado);
+}
+
 function indicarTrabajo(enCurso) {
     ocupado = enCurso;
     selectorArchivos.disabled = enCurso;
     zonaCarga.disabled = enCurso;
+    botonAgregar.disabled = enCurso;
     botonPublicar.disabled = enCurso;
     botonEliminar.disabled = enCurso;
     botonSeleccionar.disabled = enCurso;
@@ -210,18 +240,21 @@ function crearTarjeta(archivo) {
         actualizarSeleccion();
     });
     tarjeta.appendChild(selector);
-    galeria.appendChild(tarjeta);
+    galeria.insertBefore(tarjeta, botonAgregar);
     return vista;
 }
 
 async function cargarArchivos() {
     archivos = await listarMultimedia(coleccionId);
     liberarVistas(galeria);
-    galeria.replaceChildren();
+    for (const tarjeta of galeria.querySelectorAll(".TarjetaMedia")) tarjeta.remove();
     seleccionados = [];
-    mensaje.hidden = archivos.length > 0;
+    const hayArchivos = archivos.length > 0;
+    mensaje.hidden = hayArchivos;
     mensaje.textContent = "Aún no hay archivos. Sube un JPG o MP4 para comenzar.";
-    barraAcciones.classList.toggle("Visible", archivos.length > 0);
+    barraAcciones.classList.toggle("Visible", hayArchivos);
+    zonaCarga.hidden = hayArchivos;
+    botonAgregar.hidden = !hayArchivos;
     for (const archivo of archivos) {
         const vista = crearTarjeta(archivo);
         await cargarVista(vista, archivo);
@@ -296,7 +329,7 @@ async function eliminarSeleccionados() {
     const aviso = vaciaraColeccion
         ? "¿Eliminar todos los archivos? La colección quedará vacía."
         : "¿Eliminar los archivos seleccionados?";
-    if (!confirm(aviso)) return;
+    if (!(await pedirConfirmacion(aviso))) return;
     indicarTrabajo(true);
     const errores = [];
     for (const id of seleccionados) {
@@ -379,6 +412,9 @@ async function iniciar() {
 zonaCarga.addEventListener("click", function () {
     selectorArchivos.click();
 });
+botonAgregar.addEventListener("click", function () {
+    selectorArchivos.click();
+});
 selectorArchivos.addEventListener("change", subirArchivos);
 botonEliminar.addEventListener("click", eliminarSeleccionados);
 botonSeleccionar.addEventListener("click", function () {
@@ -399,6 +435,15 @@ for (const boton of menuVisibilidad.querySelectorAll("button")) {
         await publicarColeccion(boton.dataset.visibilidad);
     });
 }
+botonAceptarConfirmacion.addEventListener("click", function () {
+    cerrarConfirmacion(true);
+});
+botonCancelarConfirmacion.addEventListener("click", function () {
+    cerrarConfirmacion(false);
+});
+modalConfirmacion.addEventListener("click", function (evento) {
+    if (evento.target === modalConfirmacion) cerrarConfirmacion(false);
+});
 document.getElementById("cerrarVisor").addEventListener("click", cerrarVisor);
 configurarCampoEditable(campoTitulo, "titulo");
 configurarCampoEditable(campoDescripcion, "descripcion");
@@ -406,6 +451,11 @@ visor.addEventListener("click", function (evento) {
     if (evento.target === visor) cerrarVisor();
 });
 document.addEventListener("keydown", function (evento) {
-    if (evento.key === "Escape") cerrarVisor();
+    if (evento.key !== "Escape") return;
+    if (!modalConfirmacion.hidden) {
+        cerrarConfirmacion(false);
+        return;
+    }
+    cerrarVisor();
 });
 await iniciar();

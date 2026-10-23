@@ -122,7 +122,17 @@
                 />
 
                 <p class="EstadoVacio" id="estadoVacio" role="status">Cargando colección...</p>
-                <div class="GaleriaMedia" id="galeria"></div>
+                <div class="GaleriaMedia" id="galeria">
+                    <button
+                        type="button"
+                        class="TarjetaAgregar"
+                        id="agregarArchivos"
+                        aria-label="Agregar más archivos"
+                        hidden
+                    >
+                        <span aria-hidden="true">+</span>
+                    </button>
+                </div>
             </main>
         </div>
 
@@ -201,6 +211,33 @@
                     >
                         Abrir
                     </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="ModalConfirmacion" id="modalConfirmacion" hidden>
+            <div
+                class="ConfirmacionContenido"
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="textoConfirmacion"
+            >
+                <p id="textoConfirmacion"></p>
+                <div class="AccionesConfirmacion">
+                    <button
+                        class="BotonCancelarConfirmacion"
+                        id="confirmacionCancelar"
+                        type="button"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        class="BotonAceptarConfirmacion"
+                        id="confirmacionAceptar"
+                        type="button"
+                    >
+                        Aceptar
+                    </button>
                 </div>
             </div>
         </div>
