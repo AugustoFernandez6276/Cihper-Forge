@@ -78,6 +78,10 @@ class ColeccionRepository
                         WHERE m.coleccion_id = c.id AND m.aprobado = 1
                         ORDER BY CASE WHEN m.tipo = "imagen" THEN 0 ELSE 1 END, m.id_multimedia ASC
                         LIMIT 1) AS portada_id_multimedia,
+                       (SELECT m.tipo FROM multimedia m
+                        WHERE m.coleccion_id = c.id AND m.aprobado = 1
+                        ORDER BY CASE WHEN m.tipo = "imagen" THEN 0 ELSE 1 END, m.id_multimedia ASC
+                        LIMIT 1) AS portada_tipo,
                        (SELECT COUNT(*) FROM multimedia m WHERE m.coleccion_id = c.id AND m.aprobado = 1) AS total_archivos
                 FROM colecciones c
                 INNER JOIN usuarios u ON u.id = c.fotografo_id
