@@ -19,10 +19,16 @@ const seleccionarTodas = document.getElementById("seleccionarTodasPendientes");
 const botonAprobar = document.getElementById("aprobarPendientes");
 const botonRechazar = document.getElementById("rechazarPendientes");
 const volverColeccion = document.getElementById("volverColeccion");
+const modalConfirmacion = document.getElementById("modalConfirmacion");
+const textoConfirmacion = document.getElementById("textoConfirmacion");
+const botonAceptarConfirmacion = document.getElementById("confirmacionAceptar");
+const botonCancelarConfirmacion = document.getElementById("confirmacionCancelar");
 
 let pendientes = [];
 let idsSeleccionados = [];
 let moderando = false;
+let resolverConfirmacion = null;
+let focoAntesDeConfirmar = null;
 
 function formatearTamano(bytes) {
     const valor = Number(bytes) || 0;
@@ -40,6 +46,45 @@ function formatearFecha(fecha) {
 
 function tipoLegible(tipo) {
     return tipo === "video" ? "Video" : "Imagen";
+}
+
+function mostrarToast(texto, tipo) {
+    const contenedor = document.getElementById("toasts");
+    if (!contenedor) return;
+    const toast = document.createElement("div");
+    toast.className = "Toast " + (tipo || "Exito");
+    toast.textContent = texto;
+    contenedor.appendChild(toast);
+    setTimeout(function () {
+        toast.classList.add("Saliendo");
+        const quitar = function () {
+            toast.remove();
+        };
+        toast.addEventListener("animationend", quitar, { once: true });
+        setTimeout(quitar, 400);
+    }, 3000);
+}
+
+function pedirConfirmacion(texto) {
+    return new Promise(function (resolve) {
+        textoConfirmacion.textContent = texto;
+        focoAntesDeConfirmar = document.activeElement;
+        resolverConfirmacion = resolve;
+        modalConfirmacion.hidden = false;
+        botonCancelarConfirmacion.focus();
+    });
+}
+
+function cerrarConfirmacion(resultado) {
+    if (modalConfirmacion.hidden) return;
+    modalConfirmacion.hidden = true;
+    const resolver = resolverConfirmacion;
+    resolverConfirmacion = null;
+    if (focoAntesDeConfirmar && typeof focoAntesDeConfirmar.focus === "function") {
+        focoAntesDeConfirmar.focus();
+    }
+    focoAntesDeConfirmar = null;
+    if (resolver) resolver(resultado);
 }
 
 function actualizarBotones() {
@@ -151,12 +196,15 @@ async function aprobarSeleccionados() {
     actualizarBotones();
     try {
         const resultado = await aprobarColaborativo(coleccionId, idsSeleccionados);
-        alert(
-            "Se aprobaron " + resultado.aprobados + " archivos. Ya están visibles en la colección.",
+        mostrarToast(
+            "Se aprobaron " +
+                resultado.aprobados +
+                " archivos. Ya están visibles en la colección.",
+            "Exito",
         );
         await cargarPendientes();
     } catch (error) {
-        alert(error.message);
+        mostrarToast(error.message, "Error");
     } finally {
         moderando = false;
         actualizarBotones();
@@ -165,20 +213,40 @@ async function aprobarSeleccionados() {
 
 async function rechazarSeleccionados() {
     if (moderando || idsSeleccionados.length === 0) return;
-    if (!confirm("¿Rechazar y eliminar " + idsSeleccionados.length + " archivo(s)?")) return;
+    const confirmado = await pedirConfirmacion(
+        "¿Rechazar y eliminar " + idsSeleccionados.length + " archivo(s)?",
+    );
+    if (!confirmado || moderando || idsSeleccionados.length === 0) return;
     moderando = true;
     actualizarBotones();
     try {
         const resultado = await rechazarColaborativo(coleccionId, idsSeleccionados);
-        alert("Se rechazaron y eliminaron " + resultado.eliminados + " archivos.");
+        mostrarToast(
+            "Se rechazaron y eliminaron " + resultado.eliminados + " archivos.",
+            "Exito",
+        );
         await cargarPendientes();
     } catch (error) {
-        alert(error.message);
+        mostrarToast(error.message, "Error");
     } finally {
         moderando = false;
         actualizarBotones();
     }
 }
+
+botonAceptarConfirmacion.addEventListener("click", function () {
+    cerrarConfirmacion(true);
+});
+botonCancelarConfirmacion.addEventListener("click", function () {
+    cerrarConfirmacion(false);
+});
+modalConfirmacion.addEventListener("click", function (evento) {
+    if (evento.target === modalConfirmacion) cerrarConfirmacion(false);
+});
+document.addEventListener("keydown", function (evento) {
+    if (evento.key !== "Escape") return;
+    if (!modalConfirmacion.hidden) cerrarConfirmacion(false);
+});
 
 if (!coleccionId || !Number.isInteger(coleccionId)) {
     location.href = "panel.html";
