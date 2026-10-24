@@ -277,6 +277,148 @@ body {
     margin-top: 40px;
 }
 
+/* Contacto */
+.Contacto {
+    width: min(1180px, calc(100% - 48px));
+    margin: 0 auto;
+    padding: 20px 0 90px;
+}
+
+.ContactoPanel {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    overflow: hidden;
+    background: var(--blanco);
+    border: 1px solid var(--borde);
+    border-radius: 28px;
+    box-shadow: var(--sombra);
+}
+
+.ContactoTexto {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 54px 48px;
+    background:
+        radial-gradient(circle at 15% 15%, rgba(14, 116, 144, 0.1), transparent 38%),
+        #f2f8f5;
+}
+
+.ContactoTexto h2 {
+    margin: 0 0 22px;
+    font-size: 38px;
+    line-height: 1.15;
+    color: var(--texto-principal);
+}
+
+.ContactoTexto p {
+    margin: 0;
+    max-width: 400px;
+    color: var(--texto-gris);
+    font-size: 16px;
+}
+
+.ContactoCorreo {
+    margin: 30px 0 18px;
+    color: var(--verde);
+    font-size: 17px;
+    font-weight: bold;
+    text-decoration: none;
+    border-bottom: 2px solid rgba(13, 106, 78, 0.25);
+    transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.ContactoCorreo:hover {
+    color: var(--verde-oscuro);
+    border-color: var(--verde-oscuro);
+}
+
+.ContactoDetalle {
+    font-size: 12px !important;
+    font-weight: bold;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+}
+
+.ContactoFormulario {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: center;
+    gap: 18px;
+    padding: 54px 48px;
+    border-left: 1px solid var(--borde);
+}
+
+.ContactoCampo {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.ContactoCampoCompleto {
+    grid-column: 1 / -1;
+}
+
+.ContactoCampo label {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--texto-principal);
+}
+
+.ContactoCampo input,
+.ContactoCampo textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    background: #fbfcfb;
+    color: var(--texto-principal);
+    font: inherit;
+    font-size: 15px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.ContactoCampo input::placeholder,
+.ContactoCampo textarea::placeholder {
+    color: #9aa3a0;
+}
+
+.ContactoCampo input:focus,
+.ContactoCampo textarea:focus {
+    outline: none;
+    border-color: var(--verde);
+    background: var(--blanco);
+    box-shadow: 0 0 0 3px rgba(13, 106, 78, 0.12);
+}
+
+.ContactoCampo textarea {
+    min-height: 112px;
+    resize: vertical;
+}
+
+.BotonContacto {
+    grid-column: 1 / -1;
+    height: 48px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--verde);
+    color: var(--blanco);
+    font: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.BotonContacto:hover {
+    background: var(--verde-oscuro);
+}
+
+.BotonContacto:focus-visible {
+    outline: 3px solid #147bce;
+    outline-offset: 3px;
+}
+
 /* Footer */
 .Pie {
     padding: 28px 24px;
@@ -333,6 +475,29 @@ body {
         grid-template-columns: repeat(2, 1fr);
     }
 
+    .Contacto {
+        width: calc(100% - 32px);
+        padding: 8px 0 64px;
+    }
+
+    .ContactoPanel {
+        grid-template-columns: 1fr;
+    }
+
+    .ContactoTexto,
+    .ContactoFormulario {
+        padding: 40px 32px;
+    }
+
+    .ContactoTexto h2 {
+        font-size: 32px;
+    }
+
+    .ContactoFormulario {
+        border-top: 1px solid var(--borde);
+        border-left: 0;
+    }
+
     .Cierre h2 {
         font-size: 30px;
     }
@@ -342,5 +507,22 @@ body {
     .Caracteristicas {
         grid-template-columns: 1fr;
         padding: 28px;
+    }
+
+    .ContactoTexto {
+        padding: 36px 24px;
+    }
+
+    .ContactoTexto h2 {
+        font-size: 28px;
+    }
+
+    .ContactoFormulario {
+        grid-template-columns: 1fr;
+        padding: 32px 24px;
+    }
+
+    .ContactoCampoCompleto {
+        grid-column: auto;
     }
 }

@@ -67,6 +67,59 @@
         </section>
 
      
+        <section class="Contacto" id="contacto">
+            <div class="ContactoPanel">
+                <div class="ContactoTexto">
+                   
+                    <h2>¿Tenés una idea de mejora?<br />Hagámosla realidad.</h2>
+                    <p>
+                        Contanos y aporta que ideas que crees que mejorarian esta pagina.
+                    </p>
+                    <a class="ContactoCorreo" href="mailto:hola@cipherphotos.com">
+                        hola@cipherphotos.com
+                    </a>
+                </div>
+
+                <form
+                    class="ContactoFormulario"
+                    action="mailto:hola@cipherphotos.com"
+                    method="post"
+                    enctype="text/plain"
+                >
+                    <div class="ContactoCampo">
+                        <label for="contactoNombre">Nombre</label>
+                        <input
+                            id="contactoNombre"
+                            name="nombre"
+                            type="text"
+                            placeholder="Tu nombre"
+                            autocomplete="name"
+                        />
+                    </div>
+                    <div class="ContactoCampo">
+                        <label for="contactoCorreo">Correo</label>
+                        <input
+                            id="contactoCorreo"
+                            name="correo"
+                            type="email"
+                            placeholder="tu@correo.com"
+                            autocomplete="email"
+                        />
+                    </div>
+                    <div class="ContactoCampo ContactoCampoCompleto">
+                        <label for="contactoMensaje">Mensaje</label>
+                        <textarea
+                            id="contactoMensaje"
+                            name="mensaje"
+                            rows="4"
+                            placeholder="Contanos un poco sobre tu idea..."
+                        ></textarea>
+                    </div>
+                    <button class="BotonContacto" type="submit">Enviar mensaje</button>
+                </form>
+            </div>
+        </section>
+
         <footer class="Pie">
             <p>CipherPhotos</p>
         </footer>
