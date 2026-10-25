@@ -181,6 +181,11 @@ body {
     font-size: 17px;
 }
 
+/* Propuesta luego del video */
+.PropuestaVideo {
+    padding-bottom: 20px;
+}
+
 /* Sección de características */
 .SeccionCaracteristicas {
     background: var(--fondo);
@@ -300,9 +305,17 @@ body {
     align-items: flex-start;
     justify-content: center;
     padding: 54px 48px;
-    background:
-        radial-gradient(circle at 15% 15%, rgba(14, 116, 144, 0.1), transparent 38%),
-        #f2f8f5;
+    background: var(--blanco);
+}
+
+.ContactoTexto .ContactoEtiqueta {
+    margin: 0 0 20px;
+    max-width: none;
+    color: var(--turquesa);
+    font-size: 13px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
 .ContactoTexto h2 {
@@ -347,7 +360,6 @@ body {
     align-content: center;
     gap: 18px;
     padding: 54px 48px;
-    border-left: 1px solid var(--borde);
 }
 
 .ContactoCampo {
@@ -491,11 +503,6 @@ body {
 
     .ContactoTexto h2 {
         font-size: 32px;
-    }
-
-    .ContactoFormulario {
-        border-top: 1px solid var(--borde);
-        border-left: 0;
     }
 
     .Cierre h2 {

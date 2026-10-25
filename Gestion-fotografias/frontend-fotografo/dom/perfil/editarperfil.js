@@ -5,13 +5,23 @@ import { guardarUsuario } from "../../services/sesion/sesionService.js";
 const usuarioGuardado = requiereSesion("fotografo");
 const campoNombre = document.getElementById("nombreCompleto");
 const campoTelefono = document.getElementById("telefono");
+const LIMITE_TELEFONO = 9;
+
+function limpiarTelefono(valor) {
+    return String(valor || "").replace(/[^0-9]/g, "").slice(0, LIMITE_TELEFONO);
+}
+
+function moverCursorTelefono(posicion) {
+    const destino = Math.min(posicion, campoTelefono.value.length);
+    campoTelefono.setSelectionRange(destino, destino);
+}
 
 function mostrarDatos() {
     campoNombre.value = (usuarioGuardado.nombre_completo || "").replace(
         /[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]/g,
         ""
     );
-    campoTelefono.value = (usuarioGuardado.telefono || "").replace(/[^0-9]/g, "");
+    campoTelefono.value = limpiarTelefono(usuarioGuardado.telefono);
 }
 
 campoNombre.addEventListener("input", function () {
@@ -19,7 +29,33 @@ campoNombre.addEventListener("input", function () {
 });
 
 campoTelefono.addEventListener("input", function () {
-    campoTelefono.value = campoTelefono.value.replace(/[^0-9]/g, "");
+    const valor = campoTelefono.value;
+    const limpio = limpiarTelefono(valor);
+    if (valor === limpio) return;
+
+    const posicion = campoTelefono.selectionStart || 0;
+    const numerosAntes = limpiarTelefono(valor.slice(0, posicion)).length;
+    campoTelefono.value = limpio;
+    moverCursorTelefono(numerosAntes);
+});
+
+campoTelefono.addEventListener("paste", function (evento) {
+    const portapapeles = evento.clipboardData || window.clipboardData;
+    if (!portapapeles) return;
+
+    const texto = portapapeles.getData("text");
+    if (!texto) return;
+    evento.preventDefault();
+
+    const inicio = campoTelefono.selectionStart || 0;
+    const fin = campoTelefono.selectionEnd || 0;
+    const antes = limpiarTelefono(campoTelefono.value.slice(0, inicio));
+    const despues = limpiarTelefono(campoTelefono.value.slice(fin));
+    const espacio = LIMITE_TELEFONO - antes.length - despues.length;
+    const insertar = limpiarTelefono(texto).slice(0, Math.max(espacio, 0));
+
+    campoTelefono.value = antes + insertar + despues;
+    moverCursorTelefono(antes.length + insertar.length);
 });
 
 function mostrarToast(texto, tipo) {
@@ -82,7 +118,7 @@ if (usuarioGuardado) {
         await enviarFormulario(evento, datos);
     });
     document.getElementById("formTelefono").addEventListener("submit", async function (evento) {
-        const datos = { telefono: document.getElementById("telefono").value.trim() };
+        const datos = { telefono: limpiarTelefono(campoTelefono.value) };
         await enviarFormulario(evento, datos);
     });
 }
