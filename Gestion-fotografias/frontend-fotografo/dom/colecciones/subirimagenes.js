@@ -24,6 +24,7 @@ const botonAgregar = document.getElementById("agregarArchivos");
 const barraAcciones = document.getElementById("barraAcciones");
 const botonPublicar = document.getElementById("botonPublicar");
 const menuVisibilidad = document.getElementById("menuVisibilidad");
+const estadoVisibilidad = document.getElementById("estadoVisibilidad");
 const botonEliminar = document.getElementById("eliminarSeleccionados");
 const botonSeleccionar = document.getElementById("seleccionarTodas");
 const visor = document.getElementById("visor");
@@ -101,7 +102,16 @@ function indicarTrabajo(enCurso) {
     for (const boton of menuVisibilidad.querySelectorAll("button")) boton.disabled = enCurso;
 }
 
+function actualizarEstadoVisibilidad(tipo) {
+    const esPublica = tipo === "publica";
+    estadoVisibilidad.textContent = esPublica ? "Pública" : "Privada";
+    estadoVisibilidad.classList.toggle("EstadoPublica", esPublica);
+    estadoVisibilidad.classList.toggle("EstadoPrivada", !esPublica);
+    estadoVisibilidad.hidden = false;
+}
+
 function mostrarVisibilidad(tipo) {
+    actualizarEstadoVisibilidad(tipo);
     mostrarToast(
         tipo === "publica" ? "Visible en colecciones públicas" : "Colección privada",
         "Exito",
@@ -360,8 +370,8 @@ async function publicarColeccion(tipo) {
     }
     indicarTrabajo(true);
     try {
-        await actualizarColeccion(coleccionId, { tipo_visibilidad: tipo });
-        mostrarVisibilidad(tipo);
+        const respuesta = await actualizarColeccion(coleccionId, { tipo_visibilidad: tipo });
+        mostrarVisibilidad(respuesta && respuesta.tipo_visibilidad ? respuesta.tipo_visibilidad : tipo);
     } catch (error) {
         mostrarToast(error.message, "Error");
     } finally {
@@ -398,6 +408,7 @@ async function iniciar() {
         descripcionColeccion = coleccion.descripcion || "";
         escribirTextoCampo(campoTitulo, tituloColeccion);
         escribirTextoCampo(campoDescripcion, descripcionColeccion);
+        actualizarEstadoVisibilidad(coleccion.tipo_visibilidad);
         configurarQr(coleccionId);
         await configurarTags(coleccion);
         await cargarArchivos();
