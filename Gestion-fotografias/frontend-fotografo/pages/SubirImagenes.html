@@ -55,30 +55,43 @@
                     </div>
 
                     <div class="ControlesQrColaborativo">
-                        <a
-                            class="BotonGenerarQr"
-                            id="botonModerarColaborativo"
-                            href="#"
-                            title="Revisar y aprobar los archivos que subieron los invitados"
-                        >
-                            Moderar aportes
-                        </a>
                         <button
-                            class="BotonGenerarQr"
-                            id="botonQrColaborativo"
+                            class="BotonGenerarQr BotonMasOpciones"
+                            id="botonMasOpciones"
                             type="button"
-                            title="QR temporal (24 h) para que los invitados suban fotos y videos al evento"
+                            aria-expanded="false"
+                            aria-controls="menuMasOpciones"
+                            title="Más opciones de la colección"
                         >
-                            QR colaborativo
+                            Más
+                            <span class="FlechaMas" aria-hidden="true">▾</span>
                         </button>
-                        <button
-                            class="BotonGenerarQr"
-                            id="botonQrAcceso"
-                            type="button"
-                            title="QR/enlace permanente (sin caducidad) para que los clientes accedan y descarguen la colección"
-                        >
-                            QR de acceso
-                        </button>
+                        <div class="MenuMasOpciones" id="menuMasOpciones" hidden>
+                            <a
+                                class="OpcionMas"
+                                id="botonModerarColaborativo"
+                                href="#"
+                                title="Revisar y aprobar los archivos que subieron los invitados"
+                            >
+                                Moderar aportes
+                            </a>
+                            <button
+                                class="OpcionMas"
+                                id="botonQrColaborativo"
+                                type="button"
+                                title="QR temporal (24 h) para que los invitados suban fotos y videos al evento"
+                            >
+                                QR colaborativo
+                            </button>
+                            <button
+                                class="OpcionMas"
+                                id="botonQrAcceso"
+                                type="button"
+                                title="QR/enlace permanente (sin caducidad) para que los clientes accedan y descarguen la colección"
+                            >
+                                QR de acceso
+                            </button>
+                        </div>
                     </div>
 
                     <div class="ControlPublicar">

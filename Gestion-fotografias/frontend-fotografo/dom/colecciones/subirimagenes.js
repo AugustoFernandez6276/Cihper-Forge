@@ -25,6 +25,8 @@ const barraAcciones = document.getElementById("barraAcciones");
 const botonPublicar = document.getElementById("botonPublicar");
 const menuVisibilidad = document.getElementById("menuVisibilidad");
 const estadoVisibilidad = document.getElementById("estadoVisibilidad");
+const botonMasOpciones = document.getElementById("botonMasOpciones");
+const menuMasOpciones = document.getElementById("menuMasOpciones");
 const botonEliminar = document.getElementById("eliminarSeleccionados");
 const botonSeleccionar = document.getElementById("seleccionarTodas");
 const visor = document.getElementById("visor");
@@ -116,6 +118,20 @@ function mostrarVisibilidad(tipo) {
         tipo === "publica" ? "Visible en colecciones públicas" : "Colección privada",
         "Exito",
     );
+}
+
+function cerrarMenuMas() {
+    if (menuMasOpciones.hidden) return;
+    menuMasOpciones.hidden = true;
+    botonMasOpciones.setAttribute("aria-expanded", "false");
+}
+
+function alternarMenuMas() {
+    const abrir = menuMasOpciones.hidden;
+    menuVisibilidad.hidden = true;
+    botonPublicar.setAttribute("aria-expanded", "false");
+    menuMasOpciones.hidden = !abrir;
+    botonMasOpciones.setAttribute("aria-expanded", String(abrir));
 }
 
 // Texto visible del campo editable, en una sola línea (Enter guarda, no salta).
@@ -438,8 +454,17 @@ botonSeleccionar.addEventListener("click", function () {
     actualizarSeleccion();
 });
 botonPublicar.addEventListener("click", function () {
+    cerrarMenuMas();
     menuVisibilidad.hidden = !menuVisibilidad.hidden;
     botonPublicar.setAttribute("aria-expanded", String(!menuVisibilidad.hidden));
+});
+botonMasOpciones.addEventListener("click", alternarMenuMas);
+menuMasOpciones.addEventListener("click", function (evento) {
+    if (evento.target.closest(".OpcionMas")) cerrarMenuMas();
+});
+document.addEventListener("click", function (evento) {
+    if (menuMasOpciones.hidden) return;
+    if (!evento.target.closest(".ControlesQrColaborativo")) cerrarMenuMas();
 });
 for (const boton of menuVisibilidad.querySelectorAll("button")) {
     boton.addEventListener("click", async function () {
@@ -463,6 +488,11 @@ visor.addEventListener("click", function (evento) {
 });
 document.addEventListener("keydown", function (evento) {
     if (evento.key !== "Escape") return;
+    if (!menuMasOpciones.hidden) {
+        cerrarMenuMas();
+        botonMasOpciones.focus();
+        return;
+    }
     if (!modalConfirmacion.hidden) {
         cerrarConfirmacion(false);
         return;
