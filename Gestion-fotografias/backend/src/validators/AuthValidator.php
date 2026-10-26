@@ -49,6 +49,8 @@ class AuthValidator
             $errores[] = 'El teléfono es obligatorio.';
         } elseif (!ctype_digit((string) $data['telefono'])) {
             $errores[] = 'El teléfono debe contener solo números.';
+        } elseif (strlen((string) $data['telefono']) > 30) {
+            $errores[] = 'El teléfono no debe superar los 30 caracteres.';
         }
 
         if (empty($data['rol'])) {
